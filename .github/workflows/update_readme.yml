@@ -1,0 +1,30 @@
+name: Update README
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  activity-action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          ref: activity-resources
+
+      - uses: aoli-al/activity-action@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTIVITY_ACTION_S24_TOKEN }}
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Update generated README
+          branch: activity-resources
+          push_options: '--force'
+          commit_user_name: activity-action 🤖
+          commit_user_email: actions@github.com
+          commit_author: activity-action 🤖 <actions@github.com>
+          file_pattern: 'Contributors.md image.svg'

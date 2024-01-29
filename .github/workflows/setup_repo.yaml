@@ -1,0 +1,29 @@
+name: setup repo
+
+on:
+  create:
+
+jobs:
+  setup-repo:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@master
+
+      - run: sed -i 's|{-ActivityLocation-}|https://raw.githubusercontent.com/${{ github.repository }}/activity-resources/image.svg|g' README.md
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Update generated README
+          branch: main
+          push_options: '--force'
+          commit_user_name: activity-action 🤖
+          commit_user_email: actions@github.com
+          commit_author: activity-action 🤖 <actions@github.com>
+          file_pattern: 'README.md'
+      - uses: peterjgrainger/action-create-branch@v2.2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          branch: 'activity-resources'
