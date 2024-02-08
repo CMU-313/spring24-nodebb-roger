@@ -225,17 +225,10 @@ define('forum/topic/events', [
     }
 
     function togglePostPinned(data) {
-        const el = $('[data-pid="' + data.post.pid + '"] [component="post/pin"]').filter(function (_, el) {
-            return parseInt($(el).closest('[data-pid]').attr('data-pid'), 10) === parseInt(data.post.pid, 10);
-        });
-        if (!el.length) {
-            return;
+        // Just redirect the user back to the top of the topic
+         if (data) {
+            ajaxify.go('topic/' + data.post.tid, null, true);
         }
-
-        el.attr('data-pinned', data.pinned);
-
-        el.find('[component="post/pin/on"]').toggleClass('hidden', !data.pinned);
-        el.find('[component="post/pin/off"]').toggleClass('hidden', data.pinned);
     }
 
     function togglePostVote(data) {

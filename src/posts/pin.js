@@ -23,7 +23,7 @@ module.exports = function (Posts) {
 
         const isPinning = type === 'pin';
 
-        const postData = await Posts.getPostFields(pid, ['pid', 'uid']);
+        const postData = await Posts.getPostFields(pid, ['pid', 'uid', 'tid']);
 
         let hasPinned = await Posts.hasPinned(pid, uid);
 
@@ -39,10 +39,9 @@ module.exports = function (Posts) {
         let toWrite = isPinning ? 1 : 0;
         await Posts.setPostField(pid, 'pinned', toWrite);
 
-        let pinned = await Posts.hasPinned(pid, uid);
-
         plugins.hooks.fire(`action:post.${type}`, {
             pid: pid,
+            tid: postData.tid,
             uid: uid,
             owner: postData.uid,
             current: hasPinned ? 'pinned' : 'unpinned',
