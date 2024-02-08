@@ -116,6 +116,10 @@ define('forum/topic/postTools', [
             return bookmarkPost($(this), getData($(this), 'data-pid'));
         });
 
+        postContainer.on('click', '[component="post/pin"]', function () {
+            return pinPost($(this), getData($(this), 'data-pid'));
+        });
+
         postContainer.on('click', '[component="post/upvote"]', function () {
             return votes.toggleVote($(this), '.upvoted', 1);
         });
@@ -362,6 +366,21 @@ define('forum/topic/postTools', [
             hooks.fire(`action:post.${type}`, { pid: pid });
         });
         return false;
+    }
+
+    function pinPost(button, pid) {
+        const method = button.attr('data-pinned') === 'false' ? 'put' : 'del';
+
+        // Make an API call as above to get the post pinned...
+         api[method](`/posts/${pid}/pin`, undefined, function (err) {
+            if (err) {
+                return alerts.error(err);
+            }
+            const type = method === 'put' ? 'pin' : 'unpin';
+            hooks.fire(`action:post.${type}`, { pid: pid });
+        });
+        return false;
+
     }
 
     function getData(button, data) {

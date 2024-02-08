@@ -40,6 +40,9 @@ define('forum/topic/events', [
         'posts.bookmark': togglePostBookmark,
         'posts.unbookmark': togglePostBookmark,
 
+        'posts.pin': togglePostPinned,
+        'posts.unpin': togglePostPinned,
+
         'posts.upvote': togglePostVote,
         'posts.downvote': togglePostVote,
         'posts.unvote': togglePostVote,
@@ -219,6 +222,20 @@ define('forum/topic/events', [
 
         el.find('[component="post/bookmark/on"]').toggleClass('hidden', !data.isBookmarked);
         el.find('[component="post/bookmark/off"]').toggleClass('hidden', data.isBookmarked);
+    }
+
+    function togglePostPinned(data) {
+        const el = $('[data-pid="' + data.post.pid + '"] [component="post/pin"]').filter(function (_, el) {
+            return parseInt($(el).closest('[data-pid]').attr('data-pid'), 10) === parseInt(data.post.pid, 10);
+        });
+        if (!el.length) {
+            return;
+        }
+
+        el.attr('data-pinned', data.pinned);
+
+        el.find('[component="post/pin/on"]').toggleClass('hidden', !data.pinned);
+        el.find('[component="post/pin/off"]').toggleClass('hidden', data.pinned);
     }
 
     function togglePostVote(data) {
