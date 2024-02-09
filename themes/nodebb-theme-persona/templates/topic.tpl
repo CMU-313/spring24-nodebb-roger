@@ -62,16 +62,49 @@
         {{{ end }}}
 
         <ul component="topic" class="posts timeline" data-tid="{tid}" data-cid="{cid}">
+            <!-- Display topic starter and pinned posts first -->
+            
+            <!-- Topic starter -->
             {{{each posts}}}
-                <li component="post" class="{{{ if posts.deleted }}}deleted{{{ end }}} {{{ if posts.selfPost }}}self-post{{{ end }}} {{{ if posts.topicOwnerPost }}}topic-owner-post{{{ end }}}" <!-- IMPORT partials/data/topic.tpl -->>
-                    <a component="post/anchor" data-index="{posts.index}" id="{posts.index}"></a>
+                {{{ if (posts.index == 0) }}}
+                    <li component="post" class="{{{ if posts.deleted }}}deleted{{{ end }}} {{{ if posts.selfPost }}}self-post{{{ end }}} {{{ if posts.topicOwnerPost }}}topic-owner-post{{{ end }}}" <!-- IMPORT partials/data/topic.tpl -->>
+                        <a component="post/anchor" data-index="{posts.index}" id="{posts.index}"></a>
 
-                    <meta itemprop="datePublished" content="{posts.timestampISO}">
-                    <meta itemprop="dateModified" content="{posts.editedISO}">
+                        <meta itemprop="datePublished" content="{posts.timestampISO}">
+                        <meta itemprop="dateModified" content="{posts.editedISO}">
 
-                    <!-- IMPORT partials/topic/post.tpl -->
-                </li>
-                {renderTopicEvents(@index, config.topicPostSort)}
+                        <!-- IMPORT partials/topic/post.tpl -->
+                    </li>
+                    {renderTopicEvents(@index, config.topicPostSort)}
+                {{{ end }}}
+            {{{end}}}
+
+            <!-- Pinned posts -->
+            {{{each pinnedPosts}}}
+                {{{ if pinnedPosts.pinned }}}
+                    <li component="post" class="{{{ if pinnedPosts.deleted }}}deleted{{{ end }}} {{{ if pinnedPosts.selfPost }}}self-post{{{ end }}} {{{ if pinnedPosts.topicOwnerPost }}}topic-owner-post{{{ end }}}" <!-- IMPORT partials/data/pinnedPost.tpl -->>
+                        <a component="post/anchor" data-index="{pinnedPosts.index}" id="{pinnedPosts.index}"></a>
+
+                        <meta itemprop="datePublished" content="{pinnedPosts.timestampISO}">
+                        <meta itemprop="dateModified" content="{pinnedPosts.editedISO}">
+
+                        <!-- IMPORT partials/topic/pinnedPost.tpl -->
+                    </li>
+                    {renderTopicEvents(@index, config.topicPostSort)}
+                {{{ end }}}
+            {{{end}}}
+
+            <!-- Then all the other posts -->
+            {{{each posts}}}
+                    <li component="post" class="{{{ if posts.deleted }}}deleted{{{ end }}} {{{ if posts.selfPost }}}self-post{{{ end }}} {{{ if posts.topicOwnerPost }}}topic-owner-post{{{ end }}}" <!-- IMPORT partials/data/topic.tpl -->>
+                        <a component="post/anchor" data-index="{posts.index}" id="{posts.index}"></a>
+
+                        <meta itemprop="datePublished" content="{posts.timestampISO}">
+                        <meta itemprop="dateModified" content="{posts.editedISO}">
+
+                        <!-- IMPORT partials/topic/post.tpl -->
+                    </li>
+                    {renderTopicEvents(@index, config.topicPostSort)}
             {{{end}}}
         </ul>
 

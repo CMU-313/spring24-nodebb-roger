@@ -156,6 +156,7 @@ Topics.getTopicsByTids = async function (tids, options) {
 Topics.getTopicWithPosts = async function (topicData, set, uid, start, stop, reverse) {
     const [
         posts,
+        pinnedPosts,
         category,
         tagWhitelist,
         threadTools,
@@ -169,6 +170,7 @@ Topics.getTopicWithPosts = async function (topicData, set, uid, start, stop, rev
         events,
     ] = await Promise.all([
         Topics.getTopicPosts(topicData, set, start, stop, uid, reverse),
+        Topics.getTopicPinnedPosts(topicData, uid),
         categories.getCategoryData(topicData.cid),
         categories.getTagWhitelist([topicData.cid]),
         plugins.hooks.fire('filter:topic.thread_tools', { topic: topicData, uid: uid, tools: [] }),
@@ -212,6 +214,8 @@ Topics.getTopicWithPosts = async function (topicData, set, uid, start, stop, rev
     topicData.related = related || [];
     topicData.unreplied = topicData.postcount === 1;
     topicData.icons = [];
+
+    topicData.pinnedPosts = pinnedPosts;
 
     const result = await plugins.hooks.fire('filter:topic.get', { topic: topicData, uid: uid });
     return result.topic;

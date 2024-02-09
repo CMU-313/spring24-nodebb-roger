@@ -52,6 +52,8 @@ get:
                     type: number
                   bookmarks:
                     type: number
+                  pinned:
+                    type: number
                   votes:
                     type: number
                   timestampISO:

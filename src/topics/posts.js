@@ -20,6 +20,23 @@ module.exports = function (Topics) {
         await Topics.addPostToTopic(postData.tid, postData);
     };
 
+    Topics.getTopicPinnedPosts = async function(topicData, uid) {
+        // Let's just get *all* the posts belonging to this `tid`
+        let allPids = await db.getSortedSetMembers(`tid:${topicData.tid}:posts`);
+
+        // Then filter by pinned
+        let postData = await posts.getPostsByPids(allPids, uid);
+        let pinnedPosts = postData.filter(
+            (postObject) => {
+                return postObject.pinned;
+            }
+        );
+
+        pinnedPosts = Topics.addPostData(pinnedPosts, uid);
+
+        return pinnedPosts;
+    }
+
     Topics.getTopicPosts = async function (topicData, set, start, stop, uid, reverse) {
         if (!topicData) {
             return [];
@@ -157,7 +174,8 @@ module.exports = function (Topics) {
 
     Topics.modifyPostsByPrivilege = function (topicData, topicPrivileges) {
         const loggedIn = parseInt(topicPrivileges.uid, 10) > 0;
-        topicData.posts.forEach((post) => {
+
+        function modifyPost(post) {
             if (post) {
                 post.topicOwnerPost = parseInt(topicData.uid, 10) === parseInt(post.uid, 10);
                 post.display_edit_tools = topicPrivileges.isAdminOrMod || (post.selfPost && topicPrivileges['posts:edit']);
@@ -173,6 +191,14 @@ module.exports = function (Topics) {
 
                 posts.modifyPostByPrivilege(post, topicPrivileges);
             }
+        }
+
+        topicData.posts.forEach((post) => {
+            modifyPost(post);
+        });
+
+        topicData.pinnedPosts.forEach((post) => {
+            modifyPost(post);
         });
     };
 

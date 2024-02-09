@@ -80,6 +80,11 @@ topicsController.get = async function getTopic(req, res, next) {
 
     await topics.getTopicWithPosts(topicData, set, req.uid, start, stop, reverse);
 
+    if (currentPage !== 1) {
+        // Pinned posts should only appear on the first page.
+        topicData.pinnedPosts = [];
+    }
+
     topics.modifyPostsByPrivilege(topicData, userPrivileges);
     topicData.tagWhitelist = categories.filterTagWhitelist(topicData.tagWhitelist, userPrivileges.isAdminOrMod);
 
