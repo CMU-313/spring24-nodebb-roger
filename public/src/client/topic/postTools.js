@@ -64,7 +64,7 @@ define('forum/topic/postTools', [
     PostTools.toggle = function (pid, isDeleted) {
         const postEl = components.get('post', 'pid', pid);
 
-        postEl.find('[component="post/quote"], [component="post/bookmark"], [component="post/reply"], [component="post/flag"], [component="user/chat"]')
+        postEl.find('[component="post/quote"], [component="post/bookmark"], [component="post/reply"], [component="post/flag"], [component="user/chat"], [component="user/quote"]')
             .toggleClass('hidden', isDeleted);
 
         postEl.find('[component="post/delete"]').toggleClass('hidden', isDeleted).parent().attr('hidden', isDeleted ? '' : null);
@@ -92,6 +92,10 @@ define('forum/topic/postTools', [
 
         postContainer.on('click', '[component="post/quote"]', function () {
             onQuoteClicked($(this), tid);
+        });
+
+        postContainer.on('click', '[component="post/quote"]', function () {
+            onResolvedClicked($(this), tid);
         });
 
         postContainer.on('click', '[component="post/reply"]', function () {
@@ -289,6 +293,35 @@ define('forum/topic/postTools', [
     }
 
     async function onQuoteClicked(button, tid) {
+        const selectedNode = await getSelectedNode();
+
+        showStaleWarning(async function () {
+            const username = await getUserSlug(button);
+            const toPid = getData(button, 'data-pid');
+
+            function quote(text) {
+                hooks.fire('action:composer.addQuote', {
+                    tid: tid,
+                    pid: toPid,
+                    username: username,
+                    topicName: ajaxify.data.titleRaw,
+                    text: text,
+                });
+            }
+
+            if (selectedNode.text && toPid && toPid === selectedNode.pid) {
+                return quote(selectedNode.text);
+            }
+            socket.emit('posts.getRawPost', toPid, function (err, post) {
+                if (err) {
+                    return alerts.error(err);
+                }
+
+                quote(post);
+            });
+        });
+    }
+    async function onResolvedClicked(button, tid) {
         const selectedNode = await getSelectedNode();
 
         showStaleWarning(async function () {
