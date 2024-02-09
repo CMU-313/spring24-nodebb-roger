@@ -226,7 +226,7 @@ define('forum/topic/events', [
 
     function togglePostPinned(data) {
         // Just redirect the user back to the top of the topic
-         if (data) {
+        if (data) {
             ajaxify.go('topic/' + data.post.tid, null, true);
         }
     }

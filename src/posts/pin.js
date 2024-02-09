@@ -2,9 +2,9 @@
 
 This needs to be translated to TypeScript, eventually.
 */
+
 'use strict';
 
-const db = require('../database');
 const plugins = require('../plugins');
 
 module.exports = function (Posts) {
@@ -25,18 +25,18 @@ module.exports = function (Posts) {
 
         const postData = await Posts.getPostFields(pid, ['pid', 'uid', 'tid']);
 
-        let hasPinned = await Posts.hasPinned(pid, uid);
+        const hasPinned = await Posts.hasPinned(pid, uid);
 
         if (isPinning && hasPinned) {
-            throw new Error("Already pinned!");
+            throw new Error('Already pinned!');
         }
 
         if (!isPinning && !hasPinned) {
-            throw new Error("Already unpinned!");
+            throw new Error('Already unpinned!');
         }
 
         // TODO: This line is sketchy.
-        let toWrite = isPinning ? 1 : 0;
+        const toWrite = isPinning ? 1 : 0;
         await Posts.setPostField(pid, 'pinned', toWrite);
 
         plugins.hooks.fire(`action:post.${type}`, {
@@ -58,7 +58,7 @@ module.exports = function (Posts) {
             return Array.isArray(pid) ? pid.map(() => false) : false;
         }
 
-        let postData = await Posts.getPostFields(pid, ['pinned']);
+        const postData = await Posts.getPostFields(pid, ['pinned']);
         return Boolean(postData.pinned);
     };
 };

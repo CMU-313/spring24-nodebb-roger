@@ -87,13 +87,13 @@ Posts.pin = async (req, res) => {
     const data = await mock(req);
     await api.posts.pin(req, data);
     helpers.formatApiResponse(200, res);
-}
+};
 
 Posts.unpin = async (req, res) => {
     const data = await mock(req);
     await api.posts.unpin(req, data);
     helpers.formatApiResponse(200, res);
-}
+};
 
 Posts.getDiffs = async (req, res) => {
     helpers.formatApiResponse(200, res, await api.posts.getDiffs(req, { ...req.params }));

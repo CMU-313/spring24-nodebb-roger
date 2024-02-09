@@ -20,22 +20,20 @@ module.exports = function (Topics) {
         await Topics.addPostToTopic(postData.tid, postData);
     };
 
-    Topics.getTopicPinnedPosts = async function(topicData, uid) {
+    Topics.getTopicPinnedPosts = async function (topicData, uid) {
         // Let's just get *all* the posts belonging to this `tid`
-        let allPids = await db.getSortedSetMembers(`tid:${topicData.tid}:posts`);
+        const allPids = await db.getSortedSetMembers(`tid:${topicData.tid}:posts`);
 
         // Then filter by pinned
-        let postData = await posts.getPostsByPids(allPids, uid);
+        const postData = await posts.getPostsByPids(allPids, uid);
         let pinnedPosts = postData.filter(
-            (postObject) => {
-                return postObject.pinned;
-            }
+            postObject => postObject.pinned
         );
 
         pinnedPosts = Topics.addPostData(pinnedPosts, uid);
 
         return pinnedPosts;
-    }
+    };
 
     Topics.getTopicPosts = async function (topicData, set, start, stop, uid, reverse) {
         if (!topicData) {

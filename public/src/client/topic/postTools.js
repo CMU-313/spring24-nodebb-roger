@@ -372,7 +372,7 @@ define('forum/topic/postTools', [
         const method = button.attr('data-pinned') === 'false' ? 'put' : 'del';
 
         // Make an API call as above to get the post pinned...
-         api[method](`/posts/${pid}/pin`, undefined, function (err) {
+        api[method](`/posts/${pid}/pin`, undefined, function (err) {
             if (err) {
                 return alerts.error(err);
             }
@@ -380,7 +380,6 @@ define('forum/topic/postTools', [
             hooks.fire(`action:post.${type}`, { pid: pid });
         });
         return false;
-
     }
 
     function getData(button, data) {
