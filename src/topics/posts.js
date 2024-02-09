@@ -195,9 +195,11 @@ module.exports = function (Topics) {
             modifyPost(post);
         });
 
-        topicData.pinnedPosts.forEach((post) => {
-            modifyPost(post);
-        });
+        if (topicData.hasOwnProperty('pinnedPosts')) {
+            topicData.pinnedPosts.forEach((post) => {
+                modifyPost(post);
+            });
+        }
     };
 
     Topics.addParentPosts = async function (postData) {
