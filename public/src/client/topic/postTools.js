@@ -116,6 +116,10 @@ define('forum/topic/postTools', [
             return bookmarkPost($(this), getData($(this), 'data-pid'));
         });
 
+        postContainer.on('click', '[component="post/resolve"]', function () {
+            return resolvePost($(this), getData($(this), 'data-pid'));
+        });
+
         postContainer.on('click', '[component="post/upvote"]', function () {
             return votes.toggleVote($(this), '.upvoted', 1);
         });
@@ -359,6 +363,21 @@ define('forum/topic/postTools', [
                 return alerts.error(err);
             }
             const type = method === 'put' ? 'bookmark' : 'unbookmark';
+            hooks.fire(`action:post.${type}`, { pid: pid });
+        });
+        return false;
+    }
+
+    function resolvePost(button, pid) {
+        const method = button.attr('data-resolved') === 'false' ? 'put' : 'del';
+
+        console.log(button.attr('data-resolved'));
+
+        api[method](`/posts/${pid}/resolve`, undefined, function (err) {
+            if (err) {
+                return alerts.error(err);
+            }
+            const type = method === 'put' ? 'resolve' : 'unresolve';
             hooks.fire(`action:post.${type}`, { pid: pid });
         });
         return false;

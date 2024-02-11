@@ -1,0 +1,52 @@
+put:
+  tags:
+    - posts
+  summary: resolve a post
+  description: This operation resolves a post.
+  parameters:
+    - in: path
+      name: pid
+      schema:
+        type: string
+      required: true
+      description: a valid post id
+      example: 2
+  responses:
+    '200':
+      description: Post successfully resolved
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                $ref: ../../../components/schemas/Status.yaml#/Status
+              response:
+                type: object
+                properties: {}
+delete:
+  tags:
+    - posts
+  summary: unresolve a post
+  description: This operation unresolves a post.
+  parameters:
+    - in: path
+      name: pid
+      schema:
+        type: string
+      required: true
+      description: a valid post id
+      example: 2
+  responses:
+    '200':
+      description: Post successfully unresolved
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                $ref: ../../../components/schemas/Status.yaml#/Status
+              response:
+                type: object
+                properties: {}
