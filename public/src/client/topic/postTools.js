@@ -64,7 +64,7 @@ define('forum/topic/postTools', [
     PostTools.toggle = function (pid, isDeleted) {
         const postEl = components.get('post', 'pid', pid);
 
-        postEl.find('[component="post/quote"], [component="post/bookmark"], [component="post/reply"], [component="post/flag"], [component="user/chat"], [component="user/quote"]')
+        postEl.find('[component="post/quote"], [component="post/bookmark"], [component="post/reply"], [component="post/flag"], [component="user/chat"], [component="user/resolve"]')
             .toggleClass('hidden', isDeleted);
 
         postEl.find('[component="post/delete"]').toggleClass('hidden', isDeleted).parent().attr('hidden', isDeleted ? '' : null);
@@ -94,7 +94,7 @@ define('forum/topic/postTools', [
             onQuoteClicked($(this), tid);
         });
 
-        postContainer.on('click', '[component="post/quote"]', function () {
+        postContainer.on('click', '[component="post/resolve"]', function () {
             onResolvedClicked($(this), tid);
         });
 
@@ -322,33 +322,7 @@ define('forum/topic/postTools', [
         });
     }
     async function onResolvedClicked(button, tid) {
-        const selectedNode = await getSelectedNode();
-
-        showStaleWarning(async function () {
-            const username = await getUserSlug(button);
-            const toPid = getData(button, 'data-pid');
-
-            function quote(text) {
-                hooks.fire('action:composer.addQuote', {
-                    tid: tid,
-                    pid: toPid,
-                    username: username,
-                    topicName: ajaxify.data.titleRaw,
-                    text: text,
-                });
-            }
-
-            if (selectedNode.text && toPid && toPid === selectedNode.pid) {
-                return quote(selectedNode.text);
-            }
-            socket.emit('posts.getRawPost', toPid, function (err, post) {
-                if (err) {
-                    return alerts.error(err);
-                }
-
-                quote(post);
-            });
-        });
+        button.html('<i class="fa fa-check-square"></i> Resolved');
     }
 
     async function getSelectedNode() {
