@@ -369,9 +369,8 @@ define('forum/topic/postTools', [
     }
 
     function resolvePost(button, pid) {
+        button.html('<i class="fa fa-check-square"></i> Resolved');
         const method = button.attr('data-resolved') === 'false' ? 'put' : 'del';
-
-        console.log(button.attr('data-resolved'));
 
         api[method](`/posts/${pid}/resolve`, undefined, function (err) {
             if (err) {
