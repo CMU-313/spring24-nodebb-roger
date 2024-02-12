@@ -79,6 +79,8 @@
     "thread_tools.markAsUnreadForAll": "Mark Unread For All",
     "thread_tools.pin": "Pin Topic",
     "thread_tools.unpin": "Unpin Topic",
+    "thread_tools.private": "Make Post Private",
+    "thread_tools.public": "Make Post Public",
     "thread_tools.lock": "Lock Topic",
     "thread_tools.unlock": "Unlock Topic",
     "thread_tools.move": "Move Topic",

@@ -52,6 +52,16 @@ define('forum/topic/threadTools', [
             return false;
         });
 
+        topicContainer.on('click', '[component="topic/private"]', function () {
+            topicCommand('put', '/private', 'private');
+            return false;
+        })
+
+        topicContainer.on('click', '[component="topic/public"]', function () {
+            topicCommand('del', '/private', 'public');
+            return false;
+        })
+
         topicContainer.on('click', '[component="topic/event/delete"]', function () {
             const eventId = $(this).attr('data-topic-event-id');
             const eventEl = $(this).parents('[component="topic/event"]');
@@ -295,6 +305,14 @@ define('forum/topic/threadTools', [
 
         posts.addTopicEvents(data.events);
     };
+
+    ThreadTools.setPrivate = function (data) {
+        if (parseInt(data.tid, 10) !== parseInt(threadEl.attr('data-tid'), 10)) {
+            return;
+        }
+
+        
+    }
 
     ThreadTools.setDeleteState = function (data) {
         const threadEl = components.get('topic');
