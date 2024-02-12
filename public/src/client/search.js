@@ -45,6 +45,7 @@ define('forum/search', [
         if (searchData.in === 'posts' || searchData.in === 'titlesposts' || searchData.in === 'titles') {
             searchData.matchWords = form.find('#match-words-filter').val();
             searchData.by = form.find('#posted-by-user').tagsinput('items');
+            searchData.topicName = form.find('#topic-name').tagsinput('items');
             searchData.categories = form.find('#posted-in-categories').val();
             searchData.searchChildren = form.find('#search-children').is(':checked');
             searchData.hasTags = form.find('#has-tags').tagsinput('items');
@@ -109,6 +110,13 @@ define('forum/search', [
                 formData.hasTags = Array.isArray(formData.hasTags) ? formData.hasTags : [formData.hasTags];
                 formData.hasTags.forEach(function (tag) {
                     $('#has-tags').tagsinput('add', tag);
+                });
+            }
+
+            if (formData.topicName) {
+                formData.topicName = Array.isArray(formData.topicName) ? formData.topicName : [formData.topicName];
+                formData.topicName.forEach(function (topic) {
+                    $('#topic-name').tagsinput('add', topic);
                 });
             }
 

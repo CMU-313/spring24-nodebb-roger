@@ -2681,7 +2681,7 @@ describe('Topic\'s', () => {
         });
 
         it('should update poster\'s lastposttime with "action time"', async () => {
-            // src/user/posts.js:56
+            // src/user/:56
             const data = await User.getUsersFields([adminUid], ['lastposttime']);
             assert.notStrictEqual(data[0].lastposttime, topicData.lastposttime);
         });
