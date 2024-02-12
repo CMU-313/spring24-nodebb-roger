@@ -273,11 +273,33 @@ postsAPI.unbookmark = async function (caller, data) {
     return await apiHelpers.postCommand(caller, 'unbookmark', 'bookmarked', '', data);
 };
 
+/**
+ * Resolves a post.
+ * @param {string} caller - The caller.
+ * @param {Object} data - The data object containing post information.
+ * @returns {Promise<any>} A promise that resolves with the result of the resolve operation.
+ */
 postsAPI.resolve = async function (caller, data) {
+    // Assert parameter types
+    if (typeof caller !== 'string' || typeof data !== 'object') {
+        throw new Error('Invalid parameter types. Expected parameters: (caller: string, data: object)');
+    }
+
     return await apiHelpers.postCommand(caller, 'resolve', 'resolved', '', data);
 };
 
+/**
+ * Unresolves a post.
+ * @param {string} caller - The caller.
+ * @param {Object} data - The data object containing post information.
+ * @returns {Promise<any>} A promise that resolves with the result of the unresolve operation.
+ */
 postsAPI.unresolve = async function (caller, data) {
+    // Assert parameter types
+    if (typeof caller !== 'string' || typeof data !== 'object') {
+        throw new Error('Invalid parameter types. Expected parameters: (caller: string, data: object)');
+    }
+
     return await apiHelpers.postCommand(caller, 'unresolve', 'resolved', '', data);
 };
 

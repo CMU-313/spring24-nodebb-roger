@@ -224,10 +224,22 @@ define('forum/topic/events', [
         el.find('[component="post/bookmark/off"]').toggleClass('hidden', data.isBookmarked);
     }
 
+    /**
+     * @param {Object} data - The data object containing post information.
+     * @param {Object} data.post - The post object.
+     * @param {number} data.post.pid - The post ID.
+     * @param {boolean} data.isResolved - A flag indicating whether the post is resolved or not.
+     */
     function togglePostResolve(data) {
+        // Assert parameter types
+        if (typeof data !== 'object' || typeof data.post !== 'object' || typeof data.post.pid !== 'number' || typeof data.isResolved !== 'boolean') {
+            throw new Error('Invalid parameter types. Expected an object with properties: { post: { pid: number }, isResolved: boolean }');
+        }
+
         const el = $('[data-pid="' + data.post.pid + '"] [component="post/resolve"]').filter(function (index, el) {
             return parseInt($(el).closest('[data-pid]').attr('data-pid'), 10) === parseInt(data.post.pid, 10);
         });
+
         if (!el.length) {
             return;
         }
@@ -237,6 +249,7 @@ define('forum/topic/events', [
         el.find('[component="post/resolve/on"]').toggleClass('hidden', !data.isResolved);
         el.find('[component="post/resolve/off"]').toggleClass('hidden', data.isResolved);
     }
+
 
     function togglePostVote(data) {
         const post = $('[data-pid="' + data.post.pid + '"]');

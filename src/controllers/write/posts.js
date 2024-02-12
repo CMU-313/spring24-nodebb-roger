@@ -83,17 +83,40 @@ Posts.unbookmark = async (req, res) => {
     helpers.formatApiResponse(200, res);
 };
 
+/**
+ * Resolves a post.
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @returns {Promise<void>} A promise that resolves once the post is resolved.
+ */
 Posts.resolve = async (req, res) => {
+    // Assert parameter types
+    if (!(req instanceof Request) || !(res instanceof Response)) {
+        throw new Error('Invalid parameter types. Expected parameters: (req: Request, res: Response)');
+    }
+
     const data = await mock(req);
     await api.posts.resolve(req, data);
     helpers.formatApiResponse(200, res);
 };
 
+/**
+ * Unresolves a post.
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @returns {Promise<void>} A promise that resolves once the post is unresolved.
+ */
 Posts.unresolve = async (req, res) => {
+    // Assert parameter types
+    if (!(req instanceof Request) || !(res instanceof Response)) {
+        throw new Error('Invalid parameter types. Expected parameters: (req: Request, res: Response)');
+    }
+
     const data = await mock(req);
     await api.posts.unresolve(req, data);
     helpers.formatApiResponse(200, res);
 };
+
 
 Posts.getDiffs = async (req, res) => {
     helpers.formatApiResponse(200, res, await api.posts.getDiffs(req, { ...req.params }));
