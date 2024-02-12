@@ -1,0 +1,52 @@
+put:
+  tags:
+    - topics
+  summary: private a post
+  description: This operation makes an existing topic private
+  parameters:
+    - in: path
+    name: tid
+    schema:
+      type: string
+    required: true
+    description: a valid topic id
+    example: 1
+  responses:
+    '200':
+      description: Topic successfully privated
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                $ref: ../../../components/schemas/Status.yaml#/Status
+              response:
+                type: object
+                properties: {}
+delete:
+  tags:
+    - topics
+  summary: public a post
+  description: This operation makes an existing topic public
+  parameters:
+    - in: path
+      name: tid
+      schema:
+        type: string
+      required: true
+      description: a valid topic id
+      example: 1
+  responses:
+    '200':
+      description: Topic successfully publicized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                $ref: ../../../components/schemas/Status.yaml#/Status
+              response:
+                type: object
+                properties: {}

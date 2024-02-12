@@ -370,6 +370,10 @@ define('forum/topic/threadTools', [
         posts.addTopicEvents(data.events);
     };
 
+    ThreadTools.setPrivateState = function (data) {
+        
+    }
+
     function setFollowState(state) {
         const titles = {
             follow: '[[topic:watching]]',
