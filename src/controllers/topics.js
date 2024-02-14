@@ -1,5 +1,8 @@
 'use strict';
 
+// For JS requirement
+const assert = require('assert');
+
 const nconf = require('nconf');
 const qs = require('querystring');
 
@@ -124,6 +127,10 @@ topicsController.get = async function getTopic(req, res, next) {
         rel.href = `${url}/topic/${topicData.slug}${rel.href}`;
         res.locals.linkTags.push(rel);
     });
+
+    // Ensure that pinned posts are added as a list to the result in some form
+    assert(topicData.hasOwnProperty('pinnedPosts'), 'topicData does not have a pinned posts field');
+    assert(typeof (topicData.pinnedPosts) === typeof ([]));
 
     res.render('topic', topicData);
 };

@@ -40,6 +40,11 @@ define('forum/topic/events', [
         'posts.bookmark': togglePostBookmark,
         'posts.unbookmark': togglePostBookmark,
 
+        /*
+            Since this change does not depend on the signature of this
+            function at all, I will just assert type information in the
+            function itself for now -- tkroenin
+        */
         'posts.pin': togglePostPinned,
         'posts.unpin': togglePostPinned,
 
@@ -225,10 +230,30 @@ define('forum/topic/events', [
     }
 
     function togglePostPinned(data) {
+        /*
+            Parameters:
+            Takes in a parameter `data`. For the purposes of this function, we
+            only care that it contains a field corresponding to information
+            about an individual post, and that this field tracks the post's
+            tid (an int).
+
+            Returns:
+            Nothing - this is a hook that redirects the user to the 'top' of
+            the topic.
+        */
+
+        /* I think this style of assertion is the best you can do in front-end
+           code */
+        console.assert(data.hasOwnProperty('post'), 'Data has no post property');
+        console.assert(data.post.hasOwnProperty('tid'), 'Post field has not tid property');
+        console.assert(typeof (data.post.tid) === typeof (1), `Expected type 'number' for 'tid' field, but got ${typeof (data.post.tid)}`);
+
         // Just redirect the user back to the top of the topic
         if (data) {
             ajaxify.go('topic/' + data.post.tid, null, true);
         }
+
+        // Nothing to assert for the return
     }
 
     function togglePostVote(data) {

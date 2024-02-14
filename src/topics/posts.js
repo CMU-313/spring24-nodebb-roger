@@ -1,6 +1,9 @@
 
 'use strict';
 
+// JS requirement
+const assert = require('assert');
+
 const _ = require('lodash');
 const validator = require('validator');
 const nconf = require('nconf');
@@ -21,6 +24,19 @@ module.exports = function (Topics) {
     };
 
     Topics.getTopicPinnedPosts = async function (topicData, uid) {
+        /*
+            Parameters:
+                - `topicData`: an object with information about the topic
+                - `uid`: the user id
+
+            Returns: a list of post objects, all of which are pinned
+        */
+
+        assert(topicData.hasOwnProperty('tid'), 'topicData has no tid field!');
+        assert(typeof topicData.tid === typeof 1);
+        assert(topicData.hasOwnProperty('uid'), 'topicData has no uid field!');
+        assert(typeof topicData.uid === typeof 1);
+
         // Let's just get *all* the posts belonging to this `tid`
         const allPids = await db.getSortedSetMembers(`tid:${topicData.tid}:posts`);
 
@@ -30,7 +46,20 @@ module.exports = function (Topics) {
             postObject => postObject.pinned
         );
 
-        pinnedPosts = Topics.addPostData(pinnedPosts, uid);
+        pinnedPosts = await Topics.addPostData(pinnedPosts, uid);
+
+        function hasCorrectFields(postData) {
+            return (
+                postData.hasOwnProperty('pid') &&
+                (typeof postData.pid === typeof 1) &&
+                postData.hasOwnProperty('tid') &&
+                (typeof postData.tid === typeof 1) &&
+                postData.hasOwnProperty('pinned') &&
+                (typeof postData.pinned === typeof 1)
+            );
+        }
+
+        assert(pinnedPosts.every(hasCorrectFields));
 
         return pinnedPosts;
     };
