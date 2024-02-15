@@ -29,7 +29,7 @@ tkroening
 </svg>
 <a xlink:href="https://github.com/CMU-313/spring24-nodebb-roger/commits?author=tkroening&amp;since=2024-01-20T00:00:00-05:00&amp;until=2024-03-29T23:59:00-05:00">
 <text class="stat" x="25" y="12.5">
-Commit: 2
+Commit: 3
 </text>
 </a>
 </g>
@@ -38,7 +38,7 @@ Commit: 2
 <path d="M24 10h-10v-10h-4v10h-10v4h10v10h4v-10h10z" fill-rule="evenodd"/>
 </svg>
 <text class="stat" x="25" y="12.5">
-Addition: 0
+Addition: 195
 </text>
 </g>
 <g transform="translate(0, 50)">
@@ -46,7 +46,7 @@ Addition: 0
 <path d="M0 10h24v4h-24z" fill-rule="evenodd"/>
 </svg>
 <text class="stat" x="25" y="12.5">
-Deletion: 244
+Deletion: 289
 </text>
 </g>
 <g transform="translate(0, 75)">
@@ -74,7 +74,7 @@ Pr: 3
 <path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 10.25 10H7.061l-2.574 2.573A1.458 1.458 0 0 1 2 11.543V10h-.25A1.75 1.75 0 0 1 0 8.25v-5.5C0 1.784.784 1 1.75 1ZM1.5 2.75v5.5c0 .138.112.25.25.25h1a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h3.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13 2a.25.25 0 0 0-.25-.25h-.5a.75.75 0 0 1 0-1.5h.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 14.25 12H14v1.543a1.458 1.458 0 0 1-2.487 1.03L9.22 12.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l2.22 2.22v-2.19a.75.75 0 0 1 .75-.75h1a.25.25 0 0 0 .25-.25Z" fill-rule="evenodd"/>
 </svg>
 <text class="stat" x="25" y="12.5">
-Discussion: 0
+Discussion: 1
 </text>
 </g>
 </g>
@@ -101,7 +101,7 @@ Chen3018
 </svg>
 <a xlink:href="https://github.com/CMU-313/spring24-nodebb-roger/commits?author=Chen3018&amp;since=2024-01-20T00:00:00-05:00&amp;until=2024-03-29T23:59:00-05:00">
 <text class="stat" x="25" y="12.5">
-Commit: 0
+Commit: 1
 </text>
 </a>
 </g>
@@ -110,7 +110,7 @@ Commit: 0
 <path d="M24 10h-10v-10h-4v10h-10v4h10v10h4v-10h10z" fill-rule="evenodd"/>
 </svg>
 <text class="stat" x="25" y="12.5">
-Addition: 0
+Addition: 195
 </text>
 </g>
 <g transform="translate(0, 50)">
@@ -118,7 +118,7 @@ Addition: 0
 <path d="M0 10h24v4h-24z" fill-rule="evenodd"/>
 </svg>
 <text class="stat" x="25" y="12.5">
-Deletion: 0
+Deletion: 45
 </text>
 </g>
 <g transform="translate(0, 75)">
@@ -146,7 +146,7 @@ Pr: 1
 <path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 10.25 10H7.061l-2.574 2.573A1.458 1.458 0 0 1 2 11.543V10h-.25A1.75 1.75 0 0 1 0 8.25v-5.5C0 1.784.784 1 1.75 1ZM1.5 2.75v5.5c0 .138.112.25.25.25h1a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h3.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13 2a.25.25 0 0 0-.25-.25h-.5a.75.75 0 0 1 0-1.5h.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 14.25 12H14v1.543a1.458 1.458 0 0 1-2.487 1.03L9.22 12.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l2.22 2.22v-2.19a.75.75 0 0 1 .75-.75h1a.25.25 0 0 0 .25-.25Z" fill-rule="evenodd"/>
 </svg>
 <text class="stat" x="25" y="12.5">
-Discussion: 0
+Discussion: 1
 </text>
 </g>
 </g>

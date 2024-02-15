@@ -24,18 +24,18 @@
                     <tr>
                         <th align="left">
                             <a href="https://github.com/CMU-313/spring24-nodebb-roger/commits?author=tkroening&since=2024-01-20T00:00:00-05:00&until=2024-03-29T23:59:00-05:00">
-                            Commit: 2
+                            Commit: 3
                             </a>
                         </th>
                     </tr>
                     <tr>
                         <th align="left">
-                            Addition: 0
+                            Addition: 195
                         </th>
                     </tr>
                     <tr>
                         <th align="left">
-                            Deletion: 244
+                            Deletion: 289
                         </th>
                     <tr>
                     <tr>
@@ -54,7 +54,7 @@
                     <tr>
                     <tr>
                         <th align="left">
-                            Comments: 0
+                            Comments: 1
                         </th>
                     <tr>
                 </table>
@@ -87,18 +87,18 @@
                     <tr>
                         <th align="left">
                             <a href="https://github.com/CMU-313/spring24-nodebb-roger/commits?author=Chen3018&since=2024-01-20T00:00:00-05:00&until=2024-03-29T23:59:00-05:00">
-                            Commit: 0
+                            Commit: 1
                             </a>
                         </th>
                     </tr>
                     <tr>
                         <th align="left">
-                            Addition: 0
+                            Addition: 195
                         </th>
                     </tr>
                     <tr>
                         <th align="left">
-                            Deletion: 0
+                            Deletion: 45
                         </th>
                     <tr>
                     <tr>
@@ -117,7 +117,7 @@
                     <tr>
                     <tr>
                         <th align="left">
-                            Comments: 0
+                            Comments: 1
                         </th>
                     <tr>
                 </table>
