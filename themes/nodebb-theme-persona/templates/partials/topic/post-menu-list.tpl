@@ -101,6 +101,7 @@
         </li>
     {{{end}}}
 
+    {{{ if posts.displayPin }}}
     <!-- New "Pinned Post" Feature -->
     <li>
         <a component="post/pin" data-pinned="{pinned}" role="menuitem" tabindex="-1" href=""><i class="fa fa-fw fa-thumb-tack"></i>
@@ -108,6 +109,7 @@
         <span component="post/pin/on"  class="<!-- IF !pinned -->hidden <!-- ENDIF !pinned -->">Unpin post</span>
         </a>
     </li>
+    {{{ end }}}
 <!-- ENDIF !posts.deleted -->
 
 {{{ if posts.display_flag_tools }}}

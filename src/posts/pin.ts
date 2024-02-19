@@ -5,11 +5,21 @@ https://github.com/CMU-313/NodeBB/pull/73
 */
 
 import plugins = require('../plugins');
+import topics = require('../topics');
 
 type PostData = {
     tid : string;
     uid : string;
     pinned : number;
+}
+
+type TopicData = {
+    // This is the only field that's important to us for now
+    uid : string;
+}
+
+type Topic = {
+    getTopicFields : (tid : string, fields : string[]) => Promise<TopicData>;
 }
 
 type Post = {
@@ -18,6 +28,7 @@ type Post = {
     hasPinned : (pid : string, uid : string) => Promise<boolean | boolean[]>;
     getPostFields : (pid : string, fields : string[]) => Promise<PostData>;
     setPostField : (pid : string, field : string, value : number) => Promise<unknown>;
+    isTopicOP : (pid : string, uid : string) => Promise<boolean>;
 }
 
 function postFunc(Posts : Post) {
@@ -74,6 +85,20 @@ function postFunc(Posts : Post) {
 
     Posts.unpin = async function (pid : string, uid : string) {
         return await togglePin('unpin', pid, uid);
+    };
+
+    Posts.isTopicOP = async function (pid, uid) {
+        if (parseInt(uid, 10) <= 0 || parseInt(pid, 10) <= 0) {
+            return false;
+        }
+
+        // Get the post's topic
+        const postData = await Posts.getPostFields(pid, ['tid']);
+
+        // Get the topic itself
+        const topicData = await (topics as Topic).getTopicFields(postData.tid, ['uid']);
+
+        return uid === topicData.uid;
     };
 }
 

@@ -14,6 +14,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 const plugins = require("../plugins");
+const topics = require("../topics");
 function postFunc(Posts) {
     function togglePin(type, pid, uid) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -62,6 +63,18 @@ function postFunc(Posts) {
     Posts.unpin = function (pid, uid) {
         return __awaiter(this, void 0, void 0, function* () {
             return yield togglePin('unpin', pid, uid);
+        });
+    };
+    Posts.isTopicOP = function (pid, uid) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (parseInt(uid, 10) <= 0 || parseInt(pid, 10) <= 0) {
+                return false;
+            }
+            // Get the post's topic
+            const postData = yield Posts.getPostFields(pid, ['tid']);
+            // Get the topic itself
+            const topicData = yield topics.getTopicFields(postData.tid, ['uid']);
+            return uid === topicData.uid;
         });
     };
 }
