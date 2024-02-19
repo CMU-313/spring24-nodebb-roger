@@ -27,7 +27,9 @@ const helpers = require('./helpers');
 describe('Post\'s', () => {
     let voterUid;
     let voteeUid;
+    let adminUid;
     let globalModUid;
+    let randomUserUid;
     let postData;
     let topicData;
     let cid;
@@ -40,8 +42,14 @@ describe('Post\'s', () => {
             voteeUid: function (next) {
                 user.create({ username: 'upvotee' }, next);
             },
+            adminUid: function (next) {
+                user.create({ username: 'TheAdmin', password: 'adminpwd' }, next);
+            },
             globalModUid: function (next) {
                 user.create({ username: 'globalmod', password: 'globalmodpwd' }, next);
+            },
+            randomUserUid: function (next) {
+                user.create({ username: 'randomuser' }, next);
             },
             category: function (next) {
                 categories.create({
@@ -56,7 +64,9 @@ describe('Post\'s', () => {
 
             voterUid = results.voterUid;
             voteeUid = results.voteeUid;
+            adminUid = results.adminUid;
             globalModUid = results.globalModUid;
+            randomUserUid = results.randomUserUid;
             cid = results.category.cid;
 
             topics.post({
@@ -71,6 +81,7 @@ describe('Post\'s', () => {
                 postData = data.postData;
                 topicData = data.topicData;
 
+                groups.join('administrators', adminUid);
                 groups.join('Global Moderators', globalModUid, done);
             });
         });
@@ -302,6 +313,32 @@ describe('Post\'s', () => {
         });
     });
 
+    describe('pinning', () => {
+        it('should pin a post', async () => {
+            const topicOwnerUid = topicData.uid;
+            // Yes, the room_id is needed for the test to run
+            const data = await apiPosts.pin({ uid: topicOwnerUid }, { pid: postData.pid, room_id: `topic_${postData.tid}` });
+
+            assert.equal(data.pinned, true);
+
+            const hasPinned = await posts.hasPinned([postData.pid]);
+
+            assert.equal(hasPinned, true);
+        });
+
+        it('should unpin a post', async () => {
+            // Have the same user unpin the post
+            const topicOwnerUid = topicData.uid;
+            const data = await apiPosts.unpin({ uid: topicOwnerUid }, { pid: postData.pid, room_id: `topic_${postData.tid}` });
+
+            assert.equal(data.pinned, false);
+
+            const hasPinned = await posts.hasPinned([postData.pid]);
+
+            assert.equal(hasPinned, false);
+        });
+    });
+
     describe('post tools', () => {
         it('should error if data is invalid', (done) => {
             socketPosts.loadPostTools({ uid: globalModUid }, null, (err) => {
@@ -317,6 +354,51 @@ describe('Post\'s', () => {
                 assert(data.posts.display_delete_tools);
                 assert(data.posts.display_moderator_tools);
                 assert(data.posts.display_move_tools);
+                done();
+            });
+        });
+
+        /*
+            For pinned posts, we want:
+            (1) The topic owner can see the pin button
+            (2) Admins can see the pin button
+            (3) Global moderators can see the pin button
+            (4) The "random user" cannot see the pin button
+        */
+        // (1)
+        it('topic owner can see pin button', (done) => {
+            const topicOwnerUid = topicData.uid;
+            socketPosts.loadPostTools({ uid: topicOwnerUid }, { pid: postData.pid, cid: cid }, (err, data) => {
+                assert.ifError(err);
+                assert(data.posts.displayPin);
+                done();
+            });
+        });
+
+        // (2)
+        it('admin can see the pin button', (done) => {
+            socketPosts.loadPostTools({ uid: adminUid }, { pid: postData.pid, cid: cid }, (err, data) => {
+                assert.ifError(err);
+                assert(data.posts.displayPin);
+                done();
+            });
+        });
+
+        // (3)
+        it('global moderators can see the pin button', (done) => {
+            socketPosts.loadPostTools({ uid: globalModUid }, { pid: postData.pid, cid: cid }, (err, data) => {
+                assert.ifError(err);
+                assert(data.posts.displayPin);
+                done();
+            });
+        });
+
+        // (4)
+        it('random user cannot see the pin button', (done) => {
+            // Deliberate mistake - 'globalModUid'
+            socketPosts.loadPostTools({ uid: globalModUid }, { pid: postData.pid, cid: cid }, (err, data) => {
+                assert.ifError(err);
+                assert(!(data.posts.displayPin));
                 done();
             });
         });
