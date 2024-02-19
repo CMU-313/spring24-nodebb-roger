@@ -395,8 +395,7 @@ describe('Post\'s', () => {
 
         // (4)
         it('random user cannot see the pin button', (done) => {
-            // Deliberate mistake - 'globalModUid'
-            socketPosts.loadPostTools({ uid: globalModUid }, { pid: postData.pid, cid: cid }, (err, data) => {
+            socketPosts.loadPostTools({ uid: randomUserUid }, { pid: postData.pid, cid: cid }, (err, data) => {
                 assert.ifError(err);
                 assert(!(data.posts.displayPin));
                 done();
