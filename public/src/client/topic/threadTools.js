@@ -1,5 +1,8 @@
 'use strict';
 
+const { post } = require("jquery");
+const { utils } = require("sortablejs");
+
 
 define('forum/topic/threadTools', [
     'components',
@@ -306,12 +309,29 @@ define('forum/topic/threadTools', [
         posts.addTopicEvents(data.events);
     };
 
-    ThreadTools.setPrivate = function (data) {
+    ThreadTools.setPrivateState = function (data) {
         if (parseInt(data.tid, 10) !== parseInt(threadEl.attr('data-tid'), 10)) {
             return;
         }
-
         
+        components.get('topic/private').toggleClass('hidden', data.isPrivate).parent().attr('hidden', data.isPrivate ? '' : null);
+        components.get('topic/public').toggleClass('hidden', !data.isPrivate).parent().attr('hidden', !data.isPrivate ? '' : null);
+
+        if (data.isPrivate) {
+            app.parseAndTranslate('partials/topic/privated-message', {
+                privater: data.user,
+                privated: true,
+                privatedTimestampISO: utils.toISOString(Date.now()),
+            }, function (html) {
+                components.get('topic/privated/message').replaceWith(html);
+                html.find('.timeago').timeago();
+            });
+        }
+        
+        threadEl.toggleClass('privated', data.isPrivate);
+        ajaxify.data.privated = data.isPrivate ? 1 : 0;
+
+        post.addTopicEvents(data.event);
     }
 
     ThreadTools.setDeleteState = function (data) {
@@ -369,10 +389,6 @@ define('forum/topic/threadTools', [
 
         posts.addTopicEvents(data.events);
     };
-
-    ThreadTools.setPrivateState = function (data) {
-        
-    }
 
     function setFollowState(state) {
         const titles = {
