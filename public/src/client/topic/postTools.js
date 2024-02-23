@@ -95,7 +95,7 @@ define('forum/topic/postTools', [
         });
 
         postContainer.on('click', '[component="post/resolve"]', function () {
-            onResolvedClicked($(this), tid);
+            onResolvedClicked($(this));
         });
 
         postContainer.on('click', '[component="post/reply"]', function () {
@@ -321,7 +321,7 @@ define('forum/topic/postTools', [
             });
         });
     }
-    async function onResolvedClicked(button, tid) {
+    async function onResolvedClicked(button) {
         button.html('<i class="fa fa-check-square"></i> Resolved');
     }
 
