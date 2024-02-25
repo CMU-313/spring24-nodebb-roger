@@ -12,6 +12,8 @@
     "notify_me": "Be notified of new replies in this topic",
     "quote": "Quote",
     "reply": "Reply",
+    "resolve": "Resolve",
+    "post_resolved": "Resolved",
     "replies_to_this_post": "%1 Replies",
     "one_reply_to_this_post": "1 Reply",
     "last_reply_time": "Last reply",

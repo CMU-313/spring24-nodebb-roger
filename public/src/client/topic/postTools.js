@@ -368,26 +368,14 @@ define('forum/topic/postTools', [
         return false;
     }
 
-    /**
-     * @param {JQuery<HTMLElement>} button - The button element to resolve the post.
-     * @param {number} pid - The post ID.
-     * @returns {boolean} Returns false.
-     */
-    function resolvePost(button, pid) {
-        // Assert parameter types
-        if (!(button instanceof jQuery) || typeof pid !== 'number') {
-            throw new Error('Invalid parameter types. Expected parameters: (button: JQuery<HTMLElement>, pid: number)');
-        }
-
-        button.html('<i class="fa fa-check-square"></i> Resolved');
-        const method = button.attr('data-resolved') === 'false' ? 'put' : 'del';
+    function resolvePost(pid) {
+        const method = 'put';
 
         api[method](`/posts/${pid}/resolve`, undefined, function (err) {
             if (err) {
                 return alerts.error(err);
             }
-            const type = method === 'put' ? 'resolve' : 'unresolve';
-            hooks.fire(`action:post.${type}`, { pid: pid });
+            hooks.fire(`action:post.resolve`, { pid: pid });
         });
         return false;
     }
