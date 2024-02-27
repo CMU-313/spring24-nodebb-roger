@@ -78,7 +78,7 @@ module.exports = function (Topics) {
         return await togglePrivate(tid, uid, false);
     };
 
-    async function togglePrivate(tid, uid, isPrivate){
+    async function togglePrivate(tid, uid, isPrivate) {
         const topicData = await Topics.getTopicData(tid);
         if (!topicData) {
             throw new Error('[[error:no-topic]]');
@@ -92,7 +92,7 @@ module.exports = function (Topics) {
         if ((!data.canPrivate && data.isPrivate) || (!data.canPublic && !data.isPrivate)) {
             throw new Error('[[error:no-privileges]]');
         }
-        
+
         if (data.isPrivate) {
             await Topics.private(data.topicData.tid, data.uid);
         } else {
@@ -108,7 +108,7 @@ module.exports = function (Topics) {
             plugins.hooks.fire('action:topic.public', { topic: data.topicData, uid: data.uid });
         }
         const userData = await user.getUserFields(data.uid, ['username', 'userslug']);
-       
+
         return {
             tid: data.topicData.tid,
             cid: data.topicData.cid,

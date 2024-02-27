@@ -264,6 +264,12 @@ define('forum/category/tools', [
         topic.find('[component="topic/locked"]').toggleClass('hide', !data.isDeleted);
     }
 
+    function setPrivateState(data) {
+        const topic = getTopicEl(data.tid);
+        topic.toggleClass('private', data.isPrivate);
+        topic.find('[component="topic/locked"]').toggleClass('hide', !data.isPrivate);
+    }
+
     function setPinnedState(data) {
         const topic = getTopicEl(data.tid);
         topic.toggleClass('pinned', data.isPinned);
