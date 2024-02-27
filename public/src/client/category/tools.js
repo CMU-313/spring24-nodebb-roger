@@ -42,6 +42,16 @@ define('forum/category/tools', [
             return false;
         });
 
+        components.get('topic/private').on('click', function () {
+            categoryCommand('put', '/private', 'private', onCommandComplete);
+            return false;
+        });
+
+        components.get('topic/public').on('click', function () {
+            categoryCommand('del', '/private', 'public', onCommandComplete);
+            return false;
+        });
+
         components.get('topic/pin').on('click', function () {
             categoryCommand('put', '/pin', 'pin', onCommandComplete);
             return false;

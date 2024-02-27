@@ -310,6 +310,7 @@ define('forum/topic/threadTools', [
     };
 
     ThreadTools.setPrivateState = function (data) {
+        const threadEl = components.get('topic');
         if (parseInt(data.tid, 10) !== parseInt(threadEl.attr('data-tid'), 10)) {
             return;
         }
@@ -317,21 +318,21 @@ define('forum/topic/threadTools', [
         components.get('topic/private').toggleClass('hidden', data.isPrivate).parent().attr('hidden', data.isPrivate ? '' : null);
         components.get('topic/public').toggleClass('hidden', !data.isPrivate).parent().attr('hidden', !data.isPrivate ? '' : null);
 
-        if (data.isPrivate) {
+        /*if (data.isPrivate) {
             app.parseAndTranslate('partials/topic/privated-message', {
                 privater: data.user,
-                privated: true,
+                private: true,
                 privatedTimestampISO: utils.toISOString(Date.now()),
             }, function (html) {
-                components.get('topic/privated/message').replaceWith(html);
+                components.get('topic/private/message').replaceWith(html);
                 html.find('.timeago').timeago();
             });
-        }
+        }*/
         
-        threadEl.toggleClass('privated', data.isPrivate);
-        ajaxify.data.privated = data.isPrivate ? 1 : 0;
+        threadEl.toggleClass('private', data.isPrivate);
+        ajaxify.data.private = data.isPrivate ? 1 : 0;
 
-        post.addTopicEvents(data.event);
+        posts.addTopicEvents(data.event);
     }
 
     ThreadTools.setDeleteState = function (data) {

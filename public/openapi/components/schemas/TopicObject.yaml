@@ -231,6 +231,8 @@ TopicObjectSlim:
             category
         private:
           type: number
+        privater:
+          type: number
         timestamp:
           type: number
         timestampISO:
