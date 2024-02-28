@@ -64,15 +64,23 @@ async function searchInContent(data) {
     let pids = [];
     let tids = [];
     const inTopic = String(data.query || '').match(/^in:topic-([\d]+) /);
+    // const inTopic = String(data.query.topicName);
     if (inTopic) {
         const tid = inTopic[1];
         const cleanedTerm = data.query.replace(inTopic[0], '');
         pids = await topics.search(tid, cleanedTerm);
     } else {
-        [pids, tids] = await Promise.all([
-            doSearch('post', ['posts', 'titlesposts']),
-            doSearch('topic', ['titles', 'titlesposts']),
-        ]);
+        if (data.topicName) {
+            const cleanedTerm = data.query;
+            // unsure how to search for titles in database
+            // const tid = db.getObjectFields("title:${data.topicName}", "tid")
+            pids = await topics.search(tid, cleanedTerm);
+        } else {
+            [pids, tids] = await Promise.all([
+                doSearch('post', ['posts', 'titlesposts']),
+                doSearch('topic', ['titles', 'titlesposts']),
+            ]);
+        }
     }
 
     const mainPids = await topics.getMainPids(tids);
@@ -124,7 +132,6 @@ async function filterAndSort(pids, data) {
         return pids;
     }
     postsData = postsData.filter(Boolean);
-    
     postsData = filterByTopic(postsData, data.topicName)
     postsData = filterByPostcount(postsData, data.replies, data.repliesFilter);
     postsData = filterByTimerange(postsData, data.timeRange, data.timeFilter);
@@ -218,8 +225,9 @@ function filterByPostcount(posts, postCount, repliesFilter) {
 }
 
 function filterByTopic(posts, topicName) {
-    // postCount = parseInt(topicName, 10);
-    posts = posts.filter(post => post.topic == topicName);
+    if (topicName) {
+        posts = posts.filter(post => post.topic.title == topicName);
+    }
     return posts;
 }
 

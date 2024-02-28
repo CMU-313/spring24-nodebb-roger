@@ -115,8 +115,8 @@ define('forum/search', [
 
             if (formData.topicName) {
                 formData.topicName = Array.isArray(formData.topicName) ? formData.topicName : [formData.topicName];
-                formData.topicName.forEach(function (topic) {
-                    $('#topic-name').tagsinput('add', topic);
+                formData.topicName.forEach(function (topicName) {
+                    $('#topic-name').tagsinput('add', topicName);
                 });
             }
 
