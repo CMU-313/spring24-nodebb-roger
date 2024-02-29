@@ -339,6 +339,14 @@ describe('Post\'s', () => {
         });
     });
 
+    describe('resolving', () => {
+        it('should resolve a post', async () => {
+            const data = await apiPosts.resolve({ uid: voterUid }, { pid: postData.pid, room_id: `topic_${postData.tid}` });
+            assert.equal(data.isResolved, true);
+
+        });
+    });
+
     describe('post tools', () => {
         it('should error if data is invalid', (done) => {
             socketPosts.loadPostTools({ uid: globalModUid }, null, (err) => {
