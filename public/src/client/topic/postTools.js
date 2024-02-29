@@ -64,7 +64,7 @@ define('forum/topic/postTools', [
     PostTools.toggle = function (pid, isDeleted) {
         const postEl = components.get('post', 'pid', pid);
 
-        postEl.find('[component="post/quote"], [component="post/bookmark"], [component="post/reply"], [component="post/flag"], [component="user/chat"]')
+        postEl.find('[component="post/quote"], [component="post/bookmark"], [component="post/reply"], [component="post/flag"], [component="user/chat"], [component="user/resolve"]')
             .toggleClass('hidden', isDeleted);
 
         postEl.find('[component="post/delete"]').toggleClass('hidden', isDeleted).parent().attr('hidden', isDeleted ? '' : null);
@@ -92,6 +92,10 @@ define('forum/topic/postTools', [
 
         postContainer.on('click', '[component="post/quote"]', function () {
             onQuoteClicked($(this), tid);
+        });
+
+        postContainer.on('click', '[component="post/resolve"]', function () {
+            onResolvedClicked($(this));
         });
 
         postContainer.on('click', '[component="post/reply"]', function () {
@@ -316,6 +320,9 @@ define('forum/topic/postTools', [
                 quote(post);
             });
         });
+    }
+    async function onResolvedClicked(button) {
+        button.html('<i class="fa fa-check-square"></i> Resolved');
     }
 
     async function getSelectedNode() {
