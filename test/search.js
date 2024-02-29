@@ -206,7 +206,7 @@ describe('Search', () => {
         search.search({
             query: 'avocado',
             searchIn: 'posts',
-            topicName: 'java mongodb redis',
+            topicName: ['java mongodb redis'],
         }, (err, data) => {
             assert.ifError(err);
             assert.equal(data.posts[0].tid, topic2Data.tid);
@@ -218,7 +218,7 @@ describe('Search', () => {
         search.search({
             query: 'avocado',
             searchIn: 'posts',
-            topicName: 'not a real topic',
+            topicName: ['not a real topic'],
         }, (err, data) => {
             assert.ifError(err);
             assert(Array.isArray(data.posts));
