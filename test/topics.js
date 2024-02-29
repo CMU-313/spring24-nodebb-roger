@@ -33,14 +33,19 @@ describe('Topic\'s', () => {
     let topic;
     let categoryObj;
     let adminUid;
+    let globalModUid;
     let adminJar;
     let csrf_token;
     let fooUid;
+    let badUserUid;
 
     before(async () => {
         adminUid = await User.create({ username: 'admin', password: '123456' });
+        globalModUid = await User.create({ username: 'globalmod', password: 'globalmodpwd'});
         fooUid = await User.create({ username: 'foo' });
+        badUserUid = await User.create({ username: 'badUser' });
         await groups.join('administrators', adminUid);
+        await groups.join('Global Moderators', globalModUid);
         const adminLogin = await helpers.loginUser('admin', '123456');
         adminJar = adminLogin.jar;
         csrf_token = adminLogin.csrf_token;
@@ -381,6 +386,7 @@ describe('Topic\'s', () => {
                 assert.strictEqual(topicData.downvotes, 0);
                 assert.strictEqual(topicData.votes, 0);
                 assert.strictEqual(topicData.deleted, 0);
+                assert.strictEqual(topicData.private, 0);
                 assert.strictEqual(topicData.locked, 0);
                 assert.strictEqual(topicData.pinned, 0);
                 done();
@@ -607,6 +613,7 @@ describe('Topic\'s', () => {
 
     describe('tools/delete/restore/purge', () => {
         let newTopic;
+        let new1Topic;
         let followerUid;
         let moveCid;
 
@@ -621,6 +628,18 @@ describe('Topic\'s', () => {
                     }, (err, result) => {
                         assert.ifError(err);
                         newTopic = result.topicData;
+                        next();
+                    });
+                },
+                function (next) {
+                    topics.post({
+                        uid: fooUid,
+                        title: topic.title,
+                        content: topic.content,
+                        cid: topic.categoryId,
+                    }, (err, result) => {
+                        assert.ifError(err);
+                        new1Topic = result.topicData;
                         next();
                     });
                 },
@@ -664,6 +683,30 @@ describe('Topic\'s', () => {
             await apiTopics.restore({ uid: adminUid }, { tids: [newTopic.tid], cid: categoryObj.cid });
             const deleted = await topics.getTopicField(newTopic.tid, 'deleted');
             assert.strictEqual(deleted, 0);
+        });
+
+        it('should private the topic', async () => {
+            await apiTopics.private({ uid: globalModUid }, { tids: [newTopic.tid], cid: categoryObj.cid });
+            const privated = await topics.getTopicField(newTopic.tid, 'private');
+            assert.strictEqual(privated, 1);
+        });
+
+        it('should public the topic', async () => {
+            await apiTopics.public({ uid: globalModUid }, { tids: [newTopic.tid], cid: categoryObj.cid });
+            const privated = await topics.getTopicField(newTopic.tid, 'private');
+            assert.strictEqual(privated, 0);
+        });
+
+        it('should allow owner to private the topic', async () => {
+            await apiTopics.private({ uid: fooUid }, { tids: [new1Topic.tid], cid: categoryObj.cid });
+            const privated = await topics.getTopicField(new1Topic.tid, 'private');
+            assert.strictEqual(privated, 1);
+        });
+
+        it('should allow owner to public the topic', async () => {
+            await apiTopics.public({ uid: fooUid }, { tids: [new1Topic.tid], cid: categoryObj.cid });
+            const privated = await topics.getTopicField(new1Topic.tid, 'private');
+            assert.strictEqual(privated, 0);
         });
 
         it('should lock topic', async () => {
@@ -863,6 +906,21 @@ describe('Topic\'s', () => {
             await apiTopics.delete({ uid: adminUid }, { tids: [result.topicData.tid], cid: categoryObj.cid });
             try {
                 await apiTopics.restore({ uid: fooUid }, { tids: [result.topicData.tid], cid: categoryObj.cid });
+            } catch (err) {
+                return assert.strictEqual(err.message, '[[error:no-privileges]]');
+            }
+            assert(false);
+        });
+
+        it('should not allow user to private the topic if they are not the owner', async () => {
+            const result = await topics.post({
+                uid: fooUid,
+                title: 'topic for privating test',
+                content: 'topic content',
+                cid: categoryObj.cid,
+            });
+            try {
+                await apiTopics.private({ uid: badUserUid }, { tids: [result.topicData.tid], cid: categoryObj.cid });
             } catch (err) {
                 return assert.strictEqual(err.message, '[[error:no-privileges]]');
             }
