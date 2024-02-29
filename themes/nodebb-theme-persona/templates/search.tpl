@@ -68,6 +68,14 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="form-group post-search-item">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label>[[search:topic-name]]</label>
+                                                <input type="text" class="form-control" id="topic-name" placeholder="[[search:topic-name]]">
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     <div class="form-group post-search-item">
                                         <label>[[search:reply-count]]</label>

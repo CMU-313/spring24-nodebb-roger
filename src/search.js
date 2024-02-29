@@ -80,6 +80,7 @@ async function searchInContent(data) {
     let allPids = mainPids.concat(pids).filter(Boolean);
 
     allPids = await privileges.posts.filter('topics:read', allPids, data.uid);
+
     allPids = await filterAndSort(allPids, data);
 
     const metadata = await plugins.hooks.fire('filter:search.inContent', {
@@ -116,7 +117,7 @@ async function searchInContent(data) {
 }
 
 async function filterAndSort(pids, data) {
-    if (data.sortBy === 'relevance' && !data.replies && !data.timeRange && !data.hasTags && !plugins.hooks.hasListeners('filter:search.filterAndSort')) {
+    if (data.sortBy === 'relevance' && !data.topicName && !data.replies && !data.timeRange && !data.hasTags && !plugins.hooks.hasListeners('filter:search.filterAndSort')) {
         return pids;
     }
     let postsData = await getMatchedPosts(pids, data);
@@ -124,7 +125,7 @@ async function filterAndSort(pids, data) {
         return pids;
     }
     postsData = postsData.filter(Boolean);
-
+    postsData = filterByTopic(postsData, data.topicName);
     postsData = filterByPostcount(postsData, data.replies, data.repliesFilter);
     postsData = filterByTimerange(postsData, data.timeRange, data.timeFilter);
     postsData = filterByTags(postsData, data.hasTags);
@@ -212,6 +213,13 @@ function filterByPostcount(posts, postCount, repliesFilter) {
         } else {
             posts = posts.filter(post => post.topic && post.topic.postcount <= postCount);
         }
+    }
+    return posts;
+}
+
+function filterByTopic(posts, topicName) {
+    if (topicName) {
+        posts = posts.filter(post => post.topic && post.topic.title === topicName[0]);
     }
     return posts;
 }

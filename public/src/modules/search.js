@@ -254,6 +254,10 @@ define('search', ['translator', 'storage', 'hooks', 'alerts'], function (transla
             query.by = postedBy;
         }
 
+        if (data.topicName) {
+            query.topicName = data.topicName;
+        }
+
         if (data.categories && data.categories.length) {
             query.categories = data.categories;
             if (data.searchChildren) {
