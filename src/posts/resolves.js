@@ -1,16 +1,16 @@
 'use strict';
-
+//used the bookmarks.js file as a reference
 // const db = require('../database');
 const plugins = require('../plugins');
 
 module.exports = function (Posts) {
     Posts.resolve = async function (pid, uid) {
-        return await toggleResolve('bookmark', pid, uid);
+        return await toggleResolve('resolve', pid, uid);
     };
 
-    Posts.unresolve = async function (pid, uid) {
-        return await toggleResolve('unbookmark', pid, uid);
-    };
+    // Posts.unresolve = async function (pid, uid) {
+    //     return await toggleResolve('unresolve', pid, uid);
+    // };
 
     async function toggleResolve(type, pid, uid) {
         if (parseInt(uid, 10) <= 0) {

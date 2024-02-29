@@ -263,7 +263,8 @@ define('forum/topic/events', [
 
     function togglePostResolve(data) {
         const post = $('[data-pid="' + data.post.pid + '"]');
-        post.find('[component="post/resolved-text"]').toggleClass('hidden', !data.isResolved);
+        post.find('[component="post/resolved"]').toggleClass('hidden', !data.isResolved);
+        post.find('[component="post/resolve"]').toggleClass('hidden', data.isResolved);
     }
 
     function togglePostVote(data) {
