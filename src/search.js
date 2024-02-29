@@ -69,10 +69,10 @@ async function searchInContent(data) {
         const cleanedTerm = data.query.replace(inTopic[0], '');
         pids = await topics.search(tid, cleanedTerm);
     } else {
-            [pids, tids] = await Promise.all([
-                doSearch('post', ['posts', 'titlesposts']),
-                doSearch('topic', ['titles', 'titlesposts']),
-            ]);
+        [pids, tids] = await Promise.all([
+            doSearch('post', ['posts', 'titlesposts']),
+            doSearch('topic', ['titles', 'titlesposts']),
+        ]);
     }
 
     const mainPids = await topics.getMainPids(tids);
@@ -81,7 +81,6 @@ async function searchInContent(data) {
 
     allPids = await privileges.posts.filter('topics:read', allPids, data.uid);
 
-    let postsData = await getMatchedPosts(pids, data);
     allPids = await filterAndSort(allPids, data);
 
     const metadata = await plugins.hooks.fire('filter:search.inContent', {
