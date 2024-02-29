@@ -140,6 +140,8 @@ paths:
     $ref: 'write/posts/pid/vote.yaml'
   /posts/{pid}/bookmark:
     $ref: 'write/posts/pid/bookmark.yaml'
+  /posts/{pid}/pin:
+    $ref: 'write/posts/pid/pin.yaml'
   /posts/{pid}/diffs:
     $ref: 'write/posts/pid/diffs.yaml'
   /posts/{pid}/diffs/{since}:

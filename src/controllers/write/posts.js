@@ -1,5 +1,8 @@
 'use strict';
 
+// For JS requirement
+const assert = require('assert');
+
 const posts = require('../../posts');
 const privileges = require('../../privileges');
 
@@ -80,6 +83,46 @@ Posts.bookmark = async (req, res) => {
 Posts.unbookmark = async (req, res) => {
     const data = await mock(req);
     await api.posts.unbookmark(req, data);
+    helpers.formatApiResponse(200, res);
+};
+
+Posts.pin = async (req, res) => {
+    /*
+        Parameters: a request object with information about the post to pin,
+        and a response object to write the response to
+
+        Returns: nothing, but writes into res.
+    */
+
+    const data = await mock(req);
+
+    /*
+        Test that request has the needed fields
+    */
+    assert(data.hasOwnProperty('pid'), 'Pin request has no pid field');
+    assert(!(isNaN(data.pid)));
+
+    await api.posts.pin(req, data);
+    helpers.formatApiResponse(200, res);
+};
+
+Posts.unpin = async (req, res) => {
+    /*
+        Parameters: a request object with information about the post to unpin,
+        and a response object to write the response to
+
+        Returns: nothing, but writes into res.
+    */
+
+    const data = await mock(req);
+
+    /*
+        Test that request has the needed fields
+    */
+    assert(data.hasOwnProperty('pid'), 'Unpin request has no pid field');
+    assert(!(isNaN(data.pid)));
+
+    await api.posts.unpin(req, data);
     helpers.formatApiResponse(200, res);
 };
 

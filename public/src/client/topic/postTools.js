@@ -120,6 +120,24 @@ define('forum/topic/postTools', [
             return bookmarkPost($(this), getData($(this), 'data-pid'));
         });
 
+        postContainer.on('click', '[component="post/pin"]', function () {
+            /*
+            This is an event handler - and so doesn't have any
+            interesting parameters or return types
+
+            What's important is that element actually has a data-pid attribute.
+            */
+            console.assert(this.hasAttribute('data-pinned'), "Element didn't have data-pinned property!");
+            const attributeValue = this.getAttribute('data-pinned');
+            console.assert(attributeValue === 'true' || attributeValue === 'false', 'data-pinned is not true');
+
+            const dataPid = getData($(this), 'data-pid');
+            console.assert(!(isNaN(dataPid)), 'Invalid data-pid.');
+            // End of tests
+
+            return pinPost($(this), getData($(this), 'data-pid'));
+        });
+
         postContainer.on('click', '[component="post/upvote"]', function () {
             return votes.toggleVote($(this), '.upvoted', 1);
         });
@@ -366,6 +384,31 @@ define('forum/topic/postTools', [
                 return alerts.error(err);
             }
             const type = method === 'put' ? 'bookmark' : 'unbookmark';
+            hooks.fire(`action:post.${type}`, { pid: pid });
+        });
+        return false;
+    }
+
+    function pinPost(button, pid) {
+        /*
+            Parameters: an HTML element representing the button we pressed,
+            and a pid of the post we're interacting with.
+
+            Returns: error or false if something goes wrong. Returns nothing
+            if everything goes well, but fires a hook.
+        */
+
+        // We only really care about checking that the pid is a number
+        console.assert(!(isNaN(pid)), 'pid argument to pinPost is not a valid number');
+
+        const method = button.attr('data-pinned') === 'false' ? 'put' : 'del';
+
+        // Make an API call as above to get the post pinned...
+        api[method](`/posts/${pid}/pin`, undefined, function (err) {
+            if (err) {
+                return alerts.error(err);
+            }
+            const type = method === 'put' ? 'pin' : 'unpin';
             hooks.fire(`action:post.${type}`, { pid: pid });
         });
         return false;

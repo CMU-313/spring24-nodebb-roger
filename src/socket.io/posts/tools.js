@@ -29,15 +29,19 @@ module.exports = function (SocketPosts) {
             canFlag: privileges.posts.canFlag(data.pid, socket.uid),
             flagged: flags.exists('post', data.pid, socket.uid), // specifically, whether THIS calling user flagged
             bookmarked: posts.hasBookmarked(data.pid, socket.uid),
+            pinned: posts.hasPinned(data.pid, socket.uid),
             postSharing: social.getActivePostSharing(),
             history: posts.diffs.exists(data.pid),
             canViewInfo: privileges.global.can('view:users:info', socket.uid),
+            // Is the user also the topic owner?
+            isTopicOP: posts.isTopicOP(data.pid, socket.uid),
         });
 
         const postData = results.posts;
         postData.absolute_url = `${nconf.get('url')}/post/${data.pid}`;
         postData.bookmarked = results.bookmarked;
         postData.selfPost = socket.uid && socket.uid === postData.uid;
+        postData.displayPin = results.isTopicOP || results.isAdmin || results.isGlobalMod || results.isModerator;
         postData.display_edit_tools = results.canEdit.flag;
         postData.display_delete_tools = results.canDelete.flag;
         postData.display_purge_tools = results.canPurge;

@@ -23,6 +23,7 @@ require('./recent')(Posts);
 require('./tools')(Posts);
 require('./votes')(Posts);
 require('./bookmarks')(Posts);
+require('./pin')(Posts);
 require('./queue')(Posts);
 require('./diffs')(Posts);
 require('./uploads')(Posts);

@@ -41,6 +41,10 @@
 
         <small data-editor="{posts.editor.userslug}" component="post/editor" class="hidden">[[global:last_edited_by, {posts.editor.username}]] <span class="timeago" title="{posts.editedISO}"></span></small>
 
+        {{{ if posts.pinned }}}
+            <span class="visible-xs-inline-block visible-sm-inline-block visible-md-inline-block visible-lg-inline-block"><i class="fa fa-thumbtack" style="color: red;"></i> Pinned &nbsp;</span>
+        {{{ end }}}
+
         <span class="visible-xs-inline-block visible-sm-inline-block visible-md-inline-block visible-lg-inline-block">
             <a class="permalink" href="{config.relative_path}/post/{posts.pid}"><span class="timeago" title="{posts.timestampISO}"></span></a>
         </span>
