@@ -54,6 +54,6 @@ The tests for this feature can be found in `tests/search.js`.
 - Tests that the search finds the correct post if the correct topic name is placed in the filter.
 - Returns nothing if no posts match the filter description.
 
-I think these tests are sufficient because they ensure that the filter functions as necessary by finding posts that match the query while also working correctly if nothing is found. For displaying posts with the correct topic name, is successfully filters out the other post which matches the other query descriptions.
+I think these tests are sufficient because they ensure that the filter functions as necessary by finding posts that match the query while also working correctly if nothing is found. For displaying posts with the correct topic name, it successfully filters out the posts which match the other query descriptions.
 
 The tests cover all of the acceptance criteria in issues #3, #6, and #7 with slight modifications as the acceptance criteria for #3 was shifted from querying for a search term to just a topic filter after the realiziation that the db-search plugin already exists. The actual existence and usability of the search bar were tested manually.
