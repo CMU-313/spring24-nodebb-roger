@@ -30,6 +30,8 @@ module.exports = function () {
     setupApiRoute(router, 'put', '/:pid/pin', [...middlewares, middleware.assert.post], controllers.write.posts.pin);
     setupApiRoute(router, 'delete', '/:pid/pin', [...middlewares, middleware.assert.post], controllers.write.posts.unpin);
 
+    setupApiRoute(router, 'put', '/:pid/resolve', [...middlewares, middleware.assert.post], controllers.write.posts.resolve);
+
     setupApiRoute(router, 'get', '/:pid/diffs', [middleware.assert.post], controllers.write.posts.getDiffs);
     setupApiRoute(router, 'get', '/:pid/diffs/:since', [middleware.assert.post], controllers.write.posts.loadDiff);
     setupApiRoute(router, 'put', '/:pid/diffs/:since', [...middlewares, middleware.assert.post], controllers.write.posts.restoreDiff);

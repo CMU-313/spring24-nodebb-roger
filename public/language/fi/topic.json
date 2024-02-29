@@ -14,6 +14,7 @@
     "quote": "Lainaa",
     "reply": "Vastaa",
     "resolve": "Resolve",
+	"post_resolved": "Resolved",
     "replies_to_this_post": "%1 vastauksia",
     "one_reply_to_this_post": "1 vastaus",
     "last_reply_time": "Viimeisin vastaus",

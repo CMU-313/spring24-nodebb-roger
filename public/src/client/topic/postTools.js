@@ -94,8 +94,12 @@ define('forum/topic/postTools', [
             onQuoteClicked($(this), tid);
         });
 
+        // postContainer.on('click', '[component="post/resolve"]', function () {
+        //     onResolvedClicked($(this));
+        // });
+
         postContainer.on('click', '[component="post/resolve"]', function () {
-            onResolvedClicked($(this));
+            return onResolveClicked(getData($(this), 'data-pid'));
         });
 
         postContainer.on('click', '[component="post/reply"]', function () {
@@ -339,8 +343,20 @@ define('forum/topic/postTools', [
             });
         });
     }
-    async function onResolvedClicked(button) {
-        button.html('<i class="fa fa-check-square"></i> Resolved');
+    // async function onResolvedClicked(button) {
+    //     button.html('<i class="fa fa-check-square"></i> Resolved');
+    // }
+
+    function onResolveClicked(pid) {
+        const method = 'put';
+
+        api[method](`/posts/${pid}/resolve`, undefined, function (err) {
+            if (err) {
+                return alerts.error(err);
+            }
+            hooks.fire(`action:post.resolve`, { pid: pid });
+        });
+        return false;
     }
 
     async function getSelectedNode() {

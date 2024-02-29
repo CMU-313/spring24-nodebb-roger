@@ -14,6 +14,7 @@
     "quote": "Siter",
     "reply": "Svar",
     "resolve": "Resolve",
+	"post_resolved": "Resolved",
     "replies_to_this_post": "%1 Svar",
     "one_reply_to_this_post": "1 Svar",
     "last_reply_time": "Siste svar",
