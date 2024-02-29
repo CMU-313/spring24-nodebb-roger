@@ -113,7 +113,6 @@ describe('Search', () => {
                 url: nconf.get('url') + qs,
                 json: true,
             }, (err, response, body) => {
-                console.log(body);
                 assert.ifError(err);
                 assert(body);
                 assert.equal(body.matchCount, 1);

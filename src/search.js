@@ -125,7 +125,7 @@ async function filterAndSort(pids, data) {
         return pids;
     }
     postsData = postsData.filter(Boolean);
-    postsData = filterByTopic(postsData, data.topicName[0]);
+    postsData = filterByTopic(postsData, data.topicName);
     postsData = filterByPostcount(postsData, data.replies, data.repliesFilter);
     postsData = filterByTimerange(postsData, data.timeRange, data.timeFilter);
     postsData = filterByTags(postsData, data.hasTags);
@@ -219,7 +219,7 @@ function filterByPostcount(posts, postCount, repliesFilter) {
 
 function filterByTopic(posts, topicName) {
     if (topicName) {
-        posts = posts.filter(post => post.topic && post.topic.title === topicName);
+        posts = posts.filter(post => post.topic && post.topic.title === topicName[0]);
     }
     return posts;
 }
