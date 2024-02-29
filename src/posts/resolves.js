@@ -1,6 +1,6 @@
 'use strict';
 
-//used the bookmarks.js file as a reference
+// used the bookmarks.js file as a reference
 // const db = require('../database');
 const plugins = require('../plugins');
 
