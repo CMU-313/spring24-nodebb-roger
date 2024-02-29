@@ -41,7 +41,7 @@ describe('Topic\'s', () => {
 
     before(async () => {
         adminUid = await User.create({ username: 'admin', password: '123456' });
-        globalModUid = await User.create({ username: 'globalmod', password: 'globalmodpwd'});
+        globalModUid = await User.create({ username: 'globalmod', password: 'globalmodpwd' });
         fooUid = await User.create({ username: 'foo' });
         badUserUid = await User.create({ username: 'badUser' });
         await groups.join('administrators', adminUid);
