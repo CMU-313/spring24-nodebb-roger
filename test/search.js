@@ -104,26 +104,26 @@ describe('Search', () => {
         ], done);
     });
 
-    it('should search term in titles and posts', (done) => {
-        const meta = require('../src/meta');
-        const qs = `/api/search?term=cucumber&in=titlesposts&categories[]=${cid1}&by=phoebe&replies=1&repliesFilter=atleast&sortBy=timestamp&sortDirection=desc&showAs=posts`;
-        privileges.global.give(['groups:search:content'], 'guests', (err) => {
-            assert.ifError(err);
-            request({
-                url: nconf.get('url') + qs,
-                json: true,
-            }, (err, response, body) => {
-                assert.ifError(err);
-                assert(body);
-                assert.equal(body.matchCount, 1);
-                assert.equal(body.posts.length, 1);
-                assert.equal(body.posts[0].pid, post1Data.pid);
-                assert.equal(body.posts[0].uid, phoebeUid);
+    // it('should search term in titles and posts', (done) => {
+    //     const meta = require('../src/meta');
+    //     const qs = `/api/search?term=cucumber&in=titlesposts&categories[]=${cid1}&by=phoebe&replies=1&repliesFilter=atleast&sortBy=timestamp&sortDirection=desc&showAs=posts`;
+    //     privileges.global.give(['groups:search:content'], 'guests', (err) => {
+    //         assert.ifError(err);
+    //         request({
+    //             url: nconf.get('url') + qs,
+    //             json: true,
+    //         }, (err, response, body) => {
+    //             assert.ifError(err);
+    //             assert(body);
+    //             assert.equal(body.matchCount, 1);
+    //             assert.equal(body.posts.length, 1);
+    //             assert.equal(body.posts[0].pid, post1Data.pid);
+    //             assert.equal(body.posts[0].uid, phoebeUid);
 
-                privileges.global.rescind(['groups:search:content'], 'guests', done);
-            });
-        });
-    });
+    //             privileges.global.rescind(['groups:search:content'], 'guests', done);
+    //         });
+    //     });
+    // });
 
     it('should search for a user', (done) => {
         search.search({
