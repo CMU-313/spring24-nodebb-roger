@@ -202,6 +202,31 @@ describe('Search', () => {
         });
     });
 
+    it('should search with topics filter', (done) => {
+        search.search({
+            query: 'avocado',
+            searchIn: 'posts',
+            topicName: 'java mongodb redis',
+        }, (err, data) => {
+            assert.ifError(err);
+            assert.equal(data.posts[0].tid, topic2Data.tid);
+            done();
+        });
+    });
+
+    it('should not find anything with topic filter', (done) => {
+        search.search({
+            query: 'avocado',
+            searchIn: 'posts',
+            topicName: 'not a real topic',
+        }, (err, data) => {
+            assert.ifError(err);
+            assert(Array.isArray(data.posts));
+            assert(!data.matchCount);
+            done();
+        });
+    });
+
     it('should not crash if tags is not an array', (done) => {
         search.search({
             query: 'mongodb',
