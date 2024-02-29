@@ -343,7 +343,6 @@ describe('Post\'s', () => {
         it('should resolve a post', async () => {
             const data = await apiPosts.resolve({ uid: voterUid }, { pid: postData.pid, room_id: `topic_${postData.tid}` });
             assert.equal(data.isResolved, true);
-
         });
     });
 
