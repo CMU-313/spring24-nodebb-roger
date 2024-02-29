@@ -23,6 +23,7 @@ require('./unread')(Topics);
 require('./recent')(Topics);
 require('./user')(Topics);
 require('./fork')(Topics);
+require('./private')(Topics);
 require('./posts')(Topics);
 require('./follow')(Topics);
 require('./tags')(Topics);

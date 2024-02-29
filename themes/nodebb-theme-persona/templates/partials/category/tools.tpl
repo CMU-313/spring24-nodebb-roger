@@ -33,6 +33,17 @@
             </a>
         </li>
 
+        <li>
+            <a component="topic/private" href="#">
+                <i class="fa fa-fw fa-lock"></i> [[topic:thread_tools.private]]
+            </a>
+        </li>
+        <li>
+            <a component="topic/public" href="#" class="hidden">
+                <i class="fa fa-fw fa-unlock"></i> [[topic:thread_tools.public]]
+            </a>
+        </li>
+
         <li class="divider"></li>
 
         <li>

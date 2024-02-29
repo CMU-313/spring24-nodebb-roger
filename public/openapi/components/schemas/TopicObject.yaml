@@ -161,6 +161,8 @@ TopicObject:
         bookmark:
           nullable: true
           type: number
+        private:
+          type: boolean
         unreplied:
           type: boolean
         icons:
@@ -227,6 +229,10 @@ TopicObjectSlim:
           type: number
           description: Whether or not this particular topic is pinned to the top of the
             category
+        private:
+          type: number
+        privater:
+          type: number
         timestamp:
           type: number
         timestampISO:

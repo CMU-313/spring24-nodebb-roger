@@ -160,8 +160,12 @@ module.exports = function (Categories) {
         }
 
         topics.forEach((topic) => {
-            if (!topic.scheduled && topic.deleted && !topic.isOwner) {
-                topic.title = '[[topic:topic_is_deleted]]';
+            if (!topic.scheduled && (topic.deleted || topic.private) && !topic.isOwner) {
+                if (topic.private) {
+                    topic.title = '[[topic:topic_is_private]]';
+                } else {
+                    topic.title = '[[topic:topic_is_deleted]]';
+                }
                 if (topic.hasOwnProperty('titleRaw')) {
                     topic.titleRaw = '[[topic:topic_is_deleted]]';
                 }

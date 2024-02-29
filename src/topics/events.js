@@ -47,6 +47,14 @@ Events._types = {
         icon: 'fa-trash-o',
         text: '[[topic:restored-by]]',
     },
+    private: {
+        icon: 'fa-lock',
+        text: '[[topic:private-by]]',
+    },
+    public: {
+        icon: 'fa-unlock',
+        text: '[[topic:public-by]]',
+    },
     move: {
         icon: 'fa-arrow-circle-right',
         // text: '[[topic:moved-from-by]]',

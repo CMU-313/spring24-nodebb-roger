@@ -7,6 +7,7 @@
 
 	"post_is_deleted": "This post is deleted!",
 	"topic_is_deleted": "This topic is deleted!",
+	"topic_is_private": "This topic is private!",
 
 	"profile": "Profile",
 	"posted_by": "Posted by %1",
@@ -50,6 +51,8 @@
 	"unpinned-by": "Unpinned by",
 	"deleted-by": "Deleted by",
 	"restored-by": "Restored by",
+	"private-by": "Privated by",
+	"public-by": "Publiced by",
 	"moved-from-by": "Moved from %1 by",
 	"queued-by": "Post queued for approval &rarr;",
 	"backlink": "Referenced by",
@@ -100,6 +103,8 @@
 	"thread_tools.change_owner": "Change Owner",
 	"thread_tools.select_category": "Select Category",
 	"thread_tools.fork": "Fork Topic",
+	"thread_tools.private": "Make Post Private",
+    "thread_tools.public": "Make Post Public",
 	"thread_tools.delete": "Delete Topic",
 	"thread_tools.delete-posts": "Delete Posts",
 	"thread_tools.delete_confirm": "Are you sure you want to delete this topic?",

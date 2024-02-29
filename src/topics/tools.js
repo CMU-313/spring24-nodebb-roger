@@ -70,6 +70,55 @@ module.exports = function (Topics) {
         };
     }
 
+    topicTools.private = async function (tid, uid) {
+        return await togglePrivate(tid, uid, true);
+    };
+
+    topicTools.public = async function (tid, uid) {
+        return await togglePrivate(tid, uid, false);
+    };
+
+    async function togglePrivate(tid, uid, isPrivate) {
+        const topicData = await Topics.getTopicData(tid);
+        if (!topicData) {
+            throw new Error('[[error:no-topic]]');
+        }
+
+        const canPrivate = await privileges.topics.canDelete(tid, uid);
+
+        const hook = isPrivate ? 'private' : 'public';
+        const data = await plugins.hooks.fire(`filter:topic.${hook}`, { topicData: topicData, uid: uid, isPrivate: isPrivate, canPrivate: canPrivate, canPublic: canPrivate });
+
+        if ((!data.canPrivate && data.isPrivate) || (!data.canPublic && !data.isPrivate)) {
+            throw new Error('[[error:no-privileges]]');
+        }
+
+        if (data.isPrivate) {
+            await Topics.private(data.topicData.tid, data.uid);
+        } else {
+            await Topics.public(data.topicData.tid);
+        }
+        const events = await Topics.events.log(tid, { type: isPrivate ? 'private' : 'public', uid });
+
+        data.topicData.private = data.isPrivate ? 1 : 0;
+
+        if (data.isPrivate) {
+            plugins.hooks.fire('action:topic.private', { topic: data.topicData, uid: data.uid });
+        } else {
+            plugins.hooks.fire('action:topic.public', { topic: data.topicData, uid: data.uid });
+        }
+        const userData = await user.getUserFields(data.uid, ['username', 'userslug']);
+
+        return {
+            tid: data.topicData.tid,
+            cid: data.topicData.cid,
+            isPrivate: data.isPrivate,
+            uid: data.uid,
+            user: userData,
+            events,
+        };
+    }
+
     topicTools.purge = async function (tid, uid) {
         const topicData = await Topics.getTopicData(tid);
         if (!topicData) {
