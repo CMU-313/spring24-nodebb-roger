@@ -64,23 +64,15 @@ async function searchInContent(data) {
     let pids = [];
     let tids = [];
     const inTopic = String(data.query || '').match(/^in:topic-([\d]+) /);
-    // const inTopic = String(data.query.topicName);
     if (inTopic) {
         const tid = inTopic[1];
         const cleanedTerm = data.query.replace(inTopic[0], '');
         pids = await topics.search(tid, cleanedTerm);
     } else {
-        if (data.topicName) {
-            const cleanedTerm = data.query;
-            // unsure how to search for titles in database
-            // const tid = db.getObjectFields("title:${data.topicName}", "tid")
-            pids = await topics.search(tid, cleanedTerm);
-        } else {
             [pids, tids] = await Promise.all([
                 doSearch('post', ['posts', 'titlesposts']),
                 doSearch('topic', ['titles', 'titlesposts']),
             ]);
-        }
     }
 
     const mainPids = await topics.getMainPids(tids);
@@ -88,6 +80,8 @@ async function searchInContent(data) {
     let allPids = mainPids.concat(pids).filter(Boolean);
 
     allPids = await privileges.posts.filter('topics:read', allPids, data.uid);
+
+    let postsData = await getMatchedPosts(pids, data);
     allPids = await filterAndSort(allPids, data);
 
     const metadata = await plugins.hooks.fire('filter:search.inContent', {
@@ -124,7 +118,7 @@ async function searchInContent(data) {
 }
 
 async function filterAndSort(pids, data) {
-    if (data.sortBy === 'relevance' && !data.replies && !data.timeRange && !data.hasTags && !plugins.hooks.hasListeners('filter:search.filterAndSort')) {
+    if (data.sortBy === 'relevance' && !data.topicName && !data.replies && !data.timeRange && !data.hasTags && !plugins.hooks.hasListeners('filter:search.filterAndSort')) {
         return pids;
     }
     let postsData = await getMatchedPosts(pids, data);
@@ -132,7 +126,7 @@ async function filterAndSort(pids, data) {
         return pids;
     }
     postsData = postsData.filter(Boolean);
-    postsData = filterByTopic(postsData, data.topicName)
+    postsData = filterByTopic(postsData, data.topicName[0]);
     postsData = filterByPostcount(postsData, data.replies, data.repliesFilter);
     postsData = filterByTimerange(postsData, data.timeRange, data.timeFilter);
     postsData = filterByTags(postsData, data.hasTags);
@@ -226,7 +220,7 @@ function filterByPostcount(posts, postCount, repliesFilter) {
 
 function filterByTopic(posts, topicName) {
     if (topicName) {
-        posts = posts.filter(post => post.topic.title == topicName);
+        posts = posts.filter(post => post.topic && post.topic.title === topicName);
     }
     return posts;
 }
