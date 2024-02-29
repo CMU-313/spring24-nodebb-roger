@@ -42,6 +42,16 @@ define('forum/category/tools', [
             return false;
         });
 
+        components.get('topic/private').on('click', function () {
+            categoryCommand('put', '/private', 'private', onCommandComplete);
+            return false;
+        });
+
+        components.get('topic/public').on('click', function () {
+            categoryCommand('del', '/private', 'public', onCommandComplete);
+            return false;
+        });
+
         components.get('topic/pin').on('click', function () {
             categoryCommand('put', '/pin', 'pin', onCommandComplete);
             return false;
@@ -119,6 +129,8 @@ define('forum/category/tools', [
         socket.on('event:topic_purged', onTopicPurged);
         socket.on('event:topic_locked', setLockedState);
         socket.on('event:topic_unlocked', setLockedState);
+        socket.on('event:topic_private', setPrivateState);
+        socket.on('event:topic_public', setPrivateState);
         socket.on('event:topic_pinned', setPinnedState);
         socket.on('event:topic_unpinned', setPinnedState);
         socket.on('event:topic_moved', onTopicMoved);
@@ -165,6 +177,8 @@ define('forum/category/tools', [
         socket.removeListener('event:topic_purged', onTopicPurged);
         socket.removeListener('event:topic_locked', setLockedState);
         socket.removeListener('event:topic_unlocked', setLockedState);
+        socket.removeListener('event:topic_private', setPrivateState);
+        socket.removeListener('event:topic_public', setPrivateState);
         socket.removeListener('event:topic_pinned', setPinnedState);
         socket.removeListener('event:topic_unpinned', setPinnedState);
         socket.removeListener('event:topic_moved', onTopicMoved);
@@ -248,6 +262,12 @@ define('forum/category/tools', [
         const topic = getTopicEl(data.tid);
         topic.toggleClass('deleted', data.isDeleted);
         topic.find('[component="topic/locked"]').toggleClass('hide', !data.isDeleted);
+    }
+
+    function setPrivateState(data) {
+        const topic = getTopicEl(data.tid);
+        topic.toggleClass('private', data.isPrivate);
+        topic.find('[component="topic/locked"]').toggleClass('hide', !data.isPrivate);
     }
 
     function setPinnedState(data) {

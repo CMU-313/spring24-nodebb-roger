@@ -1,0 +1,1 @@
+data-index="{pinnedPosts.index}" data-pid="{pinnedPosts.pid}" data-uid="{pinnedPosts.uid}" data-timestamp="{pinnedPosts.timestamp}" data-username="{pinnedPosts.user.username}" data-userslug="{pinnedPosts.user.userslug}" itemscope itemtype="http://schema.org/Comment"

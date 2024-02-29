@@ -273,6 +273,14 @@ postsAPI.unbookmark = async function (caller, data) {
     return await apiHelpers.postCommand(caller, 'unbookmark', 'bookmarked', '', data);
 };
 
+postsAPI.pin = async function (caller, data) {
+    return await apiHelpers.postCommand(caller, 'pin', 'pinned', '', data);
+};
+
+postsAPI.unpin = async function (caller, data) {
+    return await apiHelpers.postCommand(caller, 'unpin', 'unpinned', '', data);
+};
+
 async function diffsPrivilegeCheck(pid, uid) {
     const [deleted, privilegesData] = await Promise.all([
         posts.getPostField(pid, 'deleted'),

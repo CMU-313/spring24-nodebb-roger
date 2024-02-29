@@ -217,7 +217,14 @@ describe('Categories', () => {
                 title: 'will delete',
                 content: 'The content of deleted topic',
             });
+            const newData = await Topics.post({
+                uid: posterUid,
+                cid: categoryObj.cid,
+                title: 'will private',
+                content: 'The content of private topic',
+            });
             await Topics.delete(data.topicData.tid, adminUid);
+            await Topics.private(newData.topicData.tid, adminUid);
         });
 
         it('should get recent replies in category', (done) => {
@@ -270,14 +277,38 @@ describe('Categories', () => {
 
             assert.deepStrictEqual(
                 data.topics.map(t => t.title),
-                ['[[topic:topic_is_deleted]]', 'Test Topic Title', 'Test Topic Title'],
+                ['[[topic:topic_is_private]]', '[[topic:topic_is_deleted]]', 'Test Topic Title', 'Test Topic Title'],
+            );
+        });
+
+        it('should not show privated topic titles', async () => {
+            const data = await socketCategories.loadMore({ uid: 0 }, {
+                cid: categoryObj.cid,
+                after: 0,
+            });
+
+            assert.deepStrictEqual(
+                data.topics.map(t => t.title),
+                ['[[topic:topic_is_private]]', '[[topic:topic_is_deleted]]', 'Test Topic Title', 'Test Topic Title'],
+            );
+        });
+
+        it('should show privated topic titles', async () => {
+            const data = await socketCategories.loadMore({ uid: posterUid }, {
+                cid: categoryObj.cid,
+                after: 0,
+            });
+
+            assert.deepStrictEqual(
+                data.topics.map(t => t.title),
+                ['will private', 'will delete', 'Test Topic Title', 'Test Topic Title'],
             );
         });
 
         it('should load topic count', (done) => {
             socketCategories.getTopicCount({ uid: posterUid }, categoryObj.cid, (err, topicCount) => {
                 assert.ifError(err);
-                assert.strictEqual(topicCount, 3);
+                assert.strictEqual(topicCount, 4);
                 done();
             });
         });

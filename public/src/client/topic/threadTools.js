@@ -1,5 +1,7 @@
 'use strict';
 
+const { utils } = require('sortablejs');
+
 
 define('forum/topic/threadTools', [
     'components',
@@ -49,6 +51,16 @@ define('forum/topic/threadTools', [
 
         topicContainer.on('click', '[component="topic/unpin"]', function () {
             topicCommand('del', '/pin', 'unpin');
+            return false;
+        });
+
+        topicContainer.on('click', '[component="topic/private"]', function () {
+            topicCommand('put', '/private', 'private');
+            return false;
+        });
+
+        topicContainer.on('click', '[component="topic/public"]', function () {
+            topicCommand('del', '/private', 'public');
             return false;
         });
 
@@ -294,6 +306,32 @@ define('forum/topic/threadTools', [
         ajaxify.data.locked = data.isLocked;
 
         posts.addTopicEvents(data.events);
+    };
+
+    ThreadTools.setPrivateState = function (data) {
+        const threadEl = components.get('topic');
+        if (parseInt(data.tid, 10) !== parseInt(threadEl.attr('data-tid'), 10)) {
+            return;
+        }
+
+        components.get('topic/private').toggleClass('hidden', data.isPrivate).parent().attr('hidden', data.isPrivate ? '' : null);
+        components.get('topic/public').toggleClass('hidden', !data.isPrivate).parent().attr('hidden', !data.isPrivate ? '' : null);
+
+        /* if (data.isPrivate) {
+            app.parseAndTranslate('partials/topic/privated-message', {
+                privater: data.user,
+                private: true,
+                privatedTimestampISO: utils.toISOString(Date.now()),
+            }, function (html) {
+                components.get('topic/private/message').replaceWith(html);
+                html.find('.timeago').timeago();
+            });
+        } */
+
+        threadEl.toggleClass('private', data.isPrivate);
+        ajaxify.data.private = data.isPrivate ? 1 : 0;
+
+        posts.addTopicEvents(data.event);
     };
 
     ThreadTools.setDeleteState = function (data) {

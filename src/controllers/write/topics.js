@@ -61,6 +61,16 @@ Topics.restore = async (req, res) => {
     helpers.formatApiResponse(200, res);
 };
 
+Topics.private = async (req, res) => {
+    await api.topics.private(req, { tids: [req.params.tid] });
+    helpers.formatApiResponse(200, res);
+};
+
+Topics.public = async (req, res) => {
+    await api.topics.public(req, { tids: [req.params.tid] });
+    helpers.formatApiResponse(200, res);
+};
+
 Topics.purge = async (req, res) => {
     await api.topics.purge(req, { tids: [req.params.tid] });
     helpers.formatApiResponse(200, res);

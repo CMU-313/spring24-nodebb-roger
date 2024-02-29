@@ -100,6 +100,16 @@
             <a role="menuitem" component="share/{postSharing.id}" tabindex="-1" href="#"><span class="menu-icon"><i class="fa fa-fw {postSharing.class}"></i></span> {postSharing.name}</a>
         </li>
     {{{end}}}
+
+    {{{ if posts.displayPin }}}
+    <!-- New "Pinned Post" Feature -->
+    <li>
+        <a component="post/pin" data-pinned="{pinned}" role="menuitem" tabindex="-1" href=""><i class="fa fa-fw fa-thumb-tack"></i>
+        <span component="post/pin/off" class="<!-- IF pinned --> hidden <!-- ENDIF pinned -->">Pin post</span>
+        <span component="post/pin/on"  class="<!-- IF !pinned -->hidden <!-- ENDIF !pinned -->">Unpin post</span>
+        </a>
+    </li>
+    {{{ end }}}
 <!-- ENDIF !posts.deleted -->
 
 {{{ if posts.display_flag_tools }}}
