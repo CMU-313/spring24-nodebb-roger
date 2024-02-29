@@ -5,12 +5,12 @@ put:
   description: This operation makes an existing topic private
   parameters:
     - in: path
-    name: tid
-    schema:
-      type: string
-    required: true
-    description: a valid topic id
-    example: 1
+      name: tid
+      schema:
+        type: string
+      required: true
+      description: a valid topic id
+      example: 1
   responses:
     '200':
       description: Topic successfully privated
