@@ -14,6 +14,7 @@
     "quote": "Citovat",
     "reply": "Odpovědět",
     "resolve": "Resolve",
+	"post_resolved": "Resolved",
     "replies_to_this_post": "%1 odpovědí",
     "one_reply_to_this_post": "1 odpověď",
     "last_reply_time": "Poslední odpověď",

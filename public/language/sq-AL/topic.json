@@ -14,6 +14,7 @@
     "quote": "Cito",
     "reply": "Komento",
     "resolve": "Resolve",
+	"post_resolved": "Resolved",
     "replies_to_this_post": "%1 Komento",
     "one_reply_to_this_post": "1 Koment",
     "last_reply_time": "Komenti i fundit",

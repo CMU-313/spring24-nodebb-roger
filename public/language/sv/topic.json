@@ -14,6 +14,7 @@
     "quote": "Citera",
     "reply": "Svara",
     "resolve": "Resolve",
+	"post_resolved": "Resolved",
     "replies_to_this_post": "%1 svar",
     "one_reply_to_this_post": "Ett svar",
     "last_reply_time": "Senaste svaret",

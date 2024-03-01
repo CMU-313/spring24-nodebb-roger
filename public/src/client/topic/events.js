@@ -43,6 +43,8 @@ define('forum/topic/events', [
         'posts.bookmark': togglePostBookmark,
         'posts.unbookmark': togglePostBookmark,
 
+        'posts.resolve': togglePostResolve,
+
         /*
             Since this change does not depend on the signature of this
             function at all, I will just assert type information in the
@@ -257,6 +259,12 @@ define('forum/topic/events', [
         }
 
         // Nothing to assert for the return
+    }
+
+    function togglePostResolve(data) {
+        const post = $('[data-pid="' + data.post.pid + '"]');
+        post.find('[component="post/resolved"]').toggleClass('hidden', !data.isResolved);
+        post.find('[component="post/resolve"]').toggleClass('hidden', data.isResolved);
     }
 
     function togglePostVote(data) {

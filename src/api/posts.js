@@ -281,6 +281,10 @@ postsAPI.unpin = async function (caller, data) {
     return await apiHelpers.postCommand(caller, 'unpin', 'unpinned', '', data);
 };
 
+postsAPI.resolve = async function (caller, data) {
+    return await apiHelpers.postCommand(caller, 'resolve', 'unresolve', '', data);
+};
+
 async function diffsPrivilegeCheck(pid, uid) {
     const [deleted, privilegesData] = await Promise.all([
         posts.getPostField(pid, 'deleted'),

@@ -14,6 +14,7 @@
     "quote": "Citeren",
     "reply": "Reageren",
     "resolve": "Resolve",
+	"post_resolved": "Resolved",
     "replies_to_this_post": "%1 Antwoorden",
     "one_reply_to_this_post": "1 Antwoord",
     "last_reply_time": "Laatste antwoord",
