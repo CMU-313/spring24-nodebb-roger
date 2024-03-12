@@ -173,6 +173,8 @@ get:
                           nullable: true
                         bookmarked:
                           type: boolean
+                        resolved:
+                          type: boolean
                         upvoted:
                           type: boolean
                         downvoted:

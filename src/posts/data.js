@@ -7,7 +7,7 @@ const utils = require('../utils');
 const intFields = [
     'uid', 'pid', 'tid', 'deleted', 'timestamp',
     'upvotes', 'downvotes', 'deleterUid', 'edited',
-    'replies', 'bookmarks', 'pinned',
+    'replies', 'bookmarks', 'pinned', 'resolved',
 ];
 
 module.exports = function (Posts) {

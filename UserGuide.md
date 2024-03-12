@@ -89,3 +89,27 @@ I think these tests are sufficient because they ensure that the filter functions
 
 The tests cover all of the acceptance criteria in issues #3, #6, and #7 with slight modifications as the acceptance criteria for #3 was shifted from querying for a search term to just a topic filter after the realiziation that the db-search plugin already exists. The actual existence and usability of the search bar were tested manually.
 
+## Resolving Posts
+_Author_: Shreya Choksi (`choksis8168`)
+
+This feature adds the ability to resolve posts (NodeBB topics) so that users can see which posts have been resolved. It functions similar to the "Resolved" toggle on Piazza discussion sections. 
+
+### How to test
+
+This [video](https://drive.google.com/file/d/10bEAag5ix3ru2DY9lyNVAw9TKnflg2yt/view?usp=sharing) shows a quick demo of how to use the feature.
+
+#### User Testing Instructions
+1. Build and run NodeBB
+2. Navigate to an existing topic under any category or post a new topic. 
+3. Look at the post footer, and you should see the "Resolve" button if the post has not been resolved yet. 
+    - Note that if the postfooter already says "Resolved", then this post has already been resolved. 
+4. Click the "Resolve" button to mark the post as resolved!
+5. The button will now change to say "Resolved" with a check mark. 
+6. Any user can now see that the topic is resolved and it will permanently show the Resolved status! 
+
+### Automated Tests
+The test for this feature can be found in `test/posts.js`. We test that the resolved status is correctly reflected in the database after resolving the topic as a user. 
+
+I think this test is sufficient because it ensures that the new API route persists the `resolved` state of a post to the database. 
+
+The tests cover almost all of the acceptance criteria in issues #5 and #20, except for visual characteristics like graphics changes when button is pressed, which was tested manually. 
