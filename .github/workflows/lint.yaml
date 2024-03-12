@@ -79,5 +79,8 @@ jobs:
         run: |
           node app --setup="${SETUP}" --ci="${CI}"
 
+      - name: Run oxlint
+        run: npx --yes oxlint@0.2.13 --deny-warnings
+
       - name: Run ESLint
         run: npm run lint
