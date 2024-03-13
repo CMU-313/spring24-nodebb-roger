@@ -331,7 +331,7 @@ describe('API', async () => {
                         return;
                     }
 
-                    const pathParams = (path.match(/{[\w\-_*]+}?/g) || []).map(match => match.slice(1, -1));
+                    const pathParams = (path.match(/{[\w-_*]+}?/g) || []).map(match => match.slice(1, -1));
                     const schemaParams = context[method].parameters.map(param => (param.in === 'path' ? param.name : null)).filter(Boolean);
                     assert(pathParams.every(param => schemaParams.includes(param)), `${method.toUpperCase()} ${path} has path parameters specified but not defined`);
                 });

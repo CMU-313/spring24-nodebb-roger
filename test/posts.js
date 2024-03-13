@@ -559,7 +559,7 @@ describe('Post\'s', () => {
         });
 
         it('should error if title is too long', async () => {
-            const longTitle = new Array(meta.config.maximumTitleLength + 2).join('a');
+            const longTitle = (Array.from({ length: meta.config.maximumTitleLength + 2 })).join('a');
             try {
                 await apiPosts.edit({ uid: voterUid }, { pid: pid, content: 'edited post content', title: longTitle });
             } catch (err) {
@@ -604,7 +604,7 @@ describe('Post\'s', () => {
         });
 
         it('should error if content is too long', async () => {
-            const longContent = new Array(meta.config.maximumPostLength + 2).join('a');
+            const longContent = (Array.from({ length: meta.config.maximumPostLength + 2 })).join('a');
             try {
                 await apiPosts.edit({ uid: voterUid }, { pid: pid, content: longContent });
             } catch (err) {

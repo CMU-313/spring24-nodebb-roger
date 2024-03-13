@@ -288,7 +288,9 @@ SELECT (SELECT r
             return [];
         }
 
-        return await getSortedSetRank('ASC', new Array(values.length).fill(key), values);
+        let arr = Array.from({ length: values.length });
+        arr.fill(key);
+        return await getSortedSetRank('ASC', arr, values);
     };
 
     module.sortedSetRevRanks = async function (key, values) {
@@ -296,7 +298,9 @@ SELECT (SELECT r
             return [];
         }
 
-        return await getSortedSetRank('DESC', new Array(values.length).fill(key), values);
+        let arr = Array.from({ length: values.length });
+        arr.fill(key);
+        return await getSortedSetRank('DESC', arr, values);
     };
 
     module.sortedSetScore = async function (key, value) {

@@ -16,7 +16,7 @@ module.exports = {
 
             const bulkAdd = [];
             postData.forEach((post, index) => {
-                if (post.votes > 0 || post.votes < 0) {
+                if (post.votes !== 0) {
                     const cid = cids[index];
                     bulkAdd.push([`cid:${cid}:uid:${post.uid}:pids:votes`, post.votes, post.pid]);
                 }

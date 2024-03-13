@@ -12,7 +12,7 @@ module.exports = {
             categoryData = categoryData.filter(c => c && (c.color === '#fff' || c.color === '#333' || String(c.color).length !== 7));
             if (categoryData.length) {
                 await Promise.all(categoryData.map(async (data) => {
-                    const color = `#${new Array(6).fill((data.color && data.color[1]) || 'f').join('')}`;
+                    const color = `#${(Array.from({ length: 6 })).fill((data.color && data.color[1]) || 'f').join('')}`;
                     await db.setObjectField(`category:${data.cid}`, 'color', color);
                 }));
             }

@@ -36,7 +36,7 @@ pagination.create = function (currentPage, pageCount, queryObj) {
 
     pagesToShow = _.uniq(pagesToShow).filter(page => page > 0 && page <= pageCount).sort((a, b) => a - b);
 
-    queryObj = { ...(queryObj || {}) };
+    queryObj = { ...(queryObj) };
 
     delete queryObj._;
 
