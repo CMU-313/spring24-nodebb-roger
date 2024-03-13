@@ -12,6 +12,7 @@
     "scripts": {
         "start": "npx tsc && node loader.js",
         "lint": "npx tsc && eslint --cache ./nodebb .",
+        "standard": "npx standard",
         "test": "npx tsc && nyc --reporter=html --reporter=text-summary mocha",
         "coverage": "nyc report --reporter=text-lcov > ./coverage/lcov.info",
         "coveralls": "nyc report --reporter=text-lcov | coveralls && rm -r coverage"
@@ -106,6 +107,7 @@
         "nodemailer": "6.8.0",
         "nprogress": "0.2.0",
         "passport": "0.6.0",
+        "standard": "*",
         "passport-http-bearer": "1.0.1",
         "passport-local": "1.0.0",
         "pg": "8.8.0",
