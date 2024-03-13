@@ -59,7 +59,7 @@ async function runSteps(tasks) {
         // some consoles will return undefined/zero columns,
         // so just use 2 spaces in upgrade script if we can't get our column count
         const { columns } = process.stdout;
-        const arr = Array.from({ length: Math.floor(columns / 2) - (message.length / 2) + 1});
+        const arr = Array.from({ length: Math.floor(columns / 2) - (message.length / 2) + 1 });
         const spaces = columns ? arr.join(' ') : '  ';
 
         console.log(`\n\n${spaces}${chalk.green.bold(message)}\n`);

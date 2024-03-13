@@ -288,7 +288,7 @@ SELECT (SELECT r
             return [];
         }
 
-        let arr = Array.from({ length: values.length });
+        const arr = Array.from({ length: values.length });
         arr.fill(key);
         return await getSortedSetRank('ASC', arr, values);
     };
@@ -298,7 +298,7 @@ SELECT (SELECT r
             return [];
         }
 
-        let arr = Array.from({ length: values.length });
+        const arr = Array.from({ length: values.length });
         arr.fill(key);
         return await getSortedSetRank('DESC', arr, values);
     };

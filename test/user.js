@@ -353,7 +353,7 @@ describe('User', () => {
         it('should only post 1 topic out of 10', async () => {
             await User.create({ username: 'flooder', password: '123456' });
             const { jar } = await helpers.loginUser('flooder', '123456');
-            let arr = Array.from({ length: 10 });
+            const arr = Array.from({ length: 10 });
             arr.fill('topic title');
             const titles = arr;
             const res = await Promise.allSettled(titles.map(async (title) => {
@@ -989,7 +989,7 @@ describe('User', () => {
 
         it('should let updating profile if current username is above max length and it is not being changed', async () => {
             const maxLength = meta.config.maximumUsernameLength + 1;
-            let arr = Array.from({ length: maxLength });
+            const arr = Array.from({ length: maxLength });
             arr.fill('a');
             const longName = arr.join('');
             const uid = await User.create({ username: longName });
