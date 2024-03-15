@@ -12,6 +12,7 @@
     "scripts": {
         "start": "npx tsc && node loader.js",
         "lint": "npx tsc && eslint --cache ./nodebb .",
+        "retire": "retire",
         "test": "npx tsc && nyc --reporter=html --reporter=text-summary mocha",
         "coverage": "nyc report --reporter=text-lcov > ./coverage/lcov.info",
         "coveralls": "nyc report --reporter=text-lcov | coveralls && rm -r coverage"
@@ -28,6 +29,7 @@
         ]
     },
     "dependencies": {
+        "retire": "^5.0.0-beta.1",
         "@adactive/bootstrap-tagsinput": "0.8.2",
         "@isaacs/ttlcache": "1.2.1",
         "@nodebb/bootswatch": "3.4.2",
