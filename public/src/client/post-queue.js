@@ -1,185 +1,190 @@
 'use strict';
 
-
 define('forum/post-queue', [
-    'categoryFilter', 'categorySelector', 'api', 'alerts', 'bootbox',
-], function (categoryFilter, categorySelector, api, alerts, bootbox) {
-    const PostQueue = {};
+	'categoryFilter', 'categorySelector', 'api', 'alerts', 'bootbox',
+], (categoryFilter, categorySelector, api, alerts, bootbox) => {
+	const PostQueue = {};
 
-    PostQueue.init = function () {
-        $('[data-toggle="tooltip"]').tooltip();
+	PostQueue.init = function () {
+		$('[data-toggle="tooltip"]').tooltip();
 
-        categoryFilter.init($('[component="category/dropdown"]'), {
-            privilege: 'moderate',
-        });
+		categoryFilter.init($('[component="category/dropdown"]'), {
+			privilege: 'moderate',
+		});
 
-        handleBulkActions();
+		handleBulkActions();
 
-        $('.posts-list').on('click', '[data-action]', async function () {
-            function getMessage() {
-                return new Promise((resolve) => {
-                    const modal = bootbox.dialog({
-                        title: '[[post-queue:notify-user]]',
-                        message: '<textarea class="form-control"></textarea>',
-                        buttons: {
-                            OK: {
-                                label: '[[modules:bootbox.send]]',
-                                callback: function () {
-                                    const val = modal.find('textarea').val();
-                                    if (val) {
-                                        resolve(val);
-                                    }
-                                },
-                            },
-                        },
-                    });
-                });
-            }
+		$('.posts-list').on('click', '[data-action]', async function () {
+			function getMessage() {
+				return new Promise(resolve => {
+					const modal = bootbox.dialog({
+						title: '[[post-queue:notify-user]]',
+						message: '<textarea class="form-control"></textarea>',
+						buttons: {
+							OK: {
+								label: '[[modules:bootbox.send]]',
+								callback() {
+									const value = modal.find('textarea').val();
+									if (value) {
+										resolve(value);
+									}
+								},
+							},
+						},
+					});
+				});
+			}
 
-            const parent = $(this).parents('[data-id]');
-            const action = $(this).attr('data-action');
-            const id = parent.attr('data-id');
-            const listContainer = parent.get(0).parentNode;
+			const parent = $(this).parents('[data-id]');
+			const action = $(this).attr('data-action');
+			const id = parent.attr('data-id');
+			const listContainer = parent.get(0).parentNode;
 
-            if ((!['accept', 'reject', 'notify'].includes(action)) || (action === 'reject' && !await confirmReject('[[post-queue:confirm-reject]]'))) {
-                return;
-            }
+			if ((!['accept', 'reject', 'notify'].includes(action)) || (action === 'reject' && !await confirmReject('[[post-queue:confirm-reject]]'))) {
+				return;
+			}
 
-            socket.emit('posts.' + action, {
-                id: id,
-                message: action === 'notify' ? await getMessage() : undefined,
-            }, function (err) {
-                if (err) {
-                    return alerts.error(err);
-                }
-                if (action === 'accept' || action === 'reject') {
-                    parent.remove();
-                }
+			socket.emit('posts.' + action, {
+				id,
+				message: action === 'notify' ? await getMessage() : undefined,
+			}, error => {
+				if (error) {
+					return alerts.error(error);
+				}
 
-                if (listContainer.childElementCount === 0) {
-                    if (ajaxify.data.singlePost) {
-                        ajaxify.go('/post-queue' + window.location.search);
-                    } else {
-                        ajaxify.refresh();
-                    }
-                }
-            });
-            return false;
-        });
+				if (action === 'accept' || action === 'reject') {
+					parent.remove();
+				}
 
-        handleContentEdit('.post-content', '.post-content-editable', 'textarea');
-        handleContentEdit('.topic-title', '.topic-title-editable', 'input');
+				if (listContainer.childElementCount === 0) {
+					if (ajaxify.data.singlePost) {
+						ajaxify.go('/post-queue' + window.location.search);
+					} else {
+						ajaxify.refresh();
+					}
+				}
+			});
+			return false;
+		});
 
-        $('.posts-list').on('click', '.topic-category[data-editable]', function () {
-            const $this = $(this);
-            const id = $this.parents('[data-id]').attr('data-id');
-            categorySelector.modal({
-                onSubmit: function (selectedCategory) {
-                    Promise.all([
-                        api.get(`/categories/${selectedCategory.cid}`, {}),
-                        socket.emit('posts.editQueuedContent', {
-                            id: id,
-                            cid: selectedCategory.cid,
-                        }),
-                    ]).then(function (result) {
-                        const category = result[0];
-                        app.parseAndTranslate('post-queue', 'posts', {
-                            posts: [{
-                                category: category,
-                            }],
-                        }, function (html) {
-                            if ($this.find('.category-text').length) {
-                                $this.find('.category-text').text(html.find('.topic-category .category-text').text());
-                            } else {
-                                // for backwards compatibility, remove in 1.16.0
-                                $this.replaceWith(html.find('.topic-category'));
-                            }
-                        });
-                    }).catch(alerts.error);
-                },
-            });
-            return false;
-        });
+		handleContentEdit('.post-content', '.post-content-editable', 'textarea');
+		handleContentEdit('.topic-title', '.topic-title-editable', 'input');
 
-        $('[component="post/content"] img:not(.not-responsive)').addClass('img-responsive');
-    };
+		$('.posts-list').on('click', '.topic-category[data-editable]', function () {
+			const $this = $(this);
+			const id = $this.parents('[data-id]').attr('data-id');
+			categorySelector.modal({
+				onSubmit(selectedCategory) {
+					Promise.all([
+						api.get(`/categories/${selectedCategory.cid}`, {}),
+						socket.emit('posts.editQueuedContent', {
+							id,
+							cid: selectedCategory.cid,
+						}),
+					]).then(result => {
+						const category = result[0];
+						app.parseAndTranslate('post-queue', 'posts', {
+							posts: [{
+								category,
+							}],
+						}, html => {
+							if ($this.find('.category-text').length > 0) {
+								$this.find('.category-text').text(html.find('.topic-category .category-text').text());
+							} else {
+								// For backwards compatibility, remove in 1.16.0
+								$this.replaceWith(html.find('.topic-category'));
+							}
+						});
+					}).catch(alerts.error);
+				},
+			});
+			return false;
+		});
 
-    function confirmReject(msg) {
-        return new Promise((resolve) => {
-            bootbox.confirm(msg, resolve);
-        });
-    }
+		$('[component="post/content"] img:not(.not-responsive)').addClass('img-responsive');
+	};
 
-    function handleContentEdit(displayClass, editableClass, inputSelector) {
-        $('.posts-list').on('click', displayClass, function () {
-            const el = $(this);
-            const inputEl = el.parent().find(editableClass);
-            if (inputEl.length) {
-                el.addClass('hidden');
-                inputEl.removeClass('hidden').find(inputSelector).focus();
-            }
-        });
+	function confirmReject(message) {
+		return new Promise(resolve => {
+			bootbox.confirm(message, resolve);
+		});
+	}
 
-        $('.posts-list').on('blur', editableClass + ' ' + inputSelector, function () {
-            const textarea = $(this);
-            const preview = textarea.parent().parent().find(displayClass);
-            const id = textarea.parents('[data-id]').attr('data-id');
-            const titleEdit = displayClass === '.topic-title';
+	function handleContentEdit(displayClass, editableClass, inputSelector) {
+		$('.posts-list').on('click', displayClass, function () {
+			const element = $(this);
+			const inputElement = element.parent().find(editableClass);
+			if (inputElement.length > 0) {
+				element.addClass('hidden');
+				inputElement.removeClass('hidden').find(inputSelector).focus();
+			}
+		});
 
-            socket.emit('posts.editQueuedContent', {
-                id: id,
-                title: titleEdit ? textarea.val() : undefined,
-                content: titleEdit ? undefined : textarea.val(),
-            }, function (err, data) {
-                if (err) {
-                    return alerts.error(err);
-                }
-                if (titleEdit) {
-                    if (preview.find('.title-text').length) {
-                        preview.find('.title-text').text(data.postData.title);
-                    } else {
-                        // for backwards compatibility, remove in 1.16.0
-                        preview.html(data.postData.title);
-                    }
-                } else {
-                    preview.html(data.postData.content);
-                }
+		$('.posts-list').on('blur', editableClass + ' ' + inputSelector, function () {
+			const textarea = $(this);
+			const preview = textarea.parent().parent().find(displayClass);
+			const id = textarea.parents('[data-id]').attr('data-id');
+			const titleEdit = displayClass === '.topic-title';
 
-                textarea.parent().addClass('hidden');
-                preview.removeClass('hidden');
-            });
-        });
-    }
+			socket.emit('posts.editQueuedContent', {
+				id,
+				title: titleEdit ? textarea.val() : undefined,
+				content: titleEdit ? undefined : textarea.val(),
+			}, (error, data) => {
+				if (error) {
+					return alerts.error(error);
+				}
 
-    function handleBulkActions() {
-        $('[component="post-queue/bulk-actions"]').on('click', '[data-action]', async function () {
-            const bulkAction = $(this).attr('data-action');
-            let queueEls = $('.posts-list [data-id]');
-            if (bulkAction === 'accept-selected' || bulkAction === 'reject-selected') {
-                queueEls = queueEls.filter(
-                    (i, el) => $(el).find('input[type="checkbox"]').is(':checked')
-                );
-            }
-            const ids = queueEls.map((i, el) => $(el).attr('data-id')).get();
-            const showConfirm = bulkAction === 'reject-all' || bulkAction === 'reject-selected';
-            if (!ids.length || (showConfirm && !(await confirmReject(`[[post-queue:${bulkAction}-confirm, ${ids.length}]]`)))) {
-                return;
-            }
-            const action = bulkAction.split('-')[0];
-            const promises = ids.map(id => socket.emit('posts.' + action, { id: id }));
+				if (titleEdit) {
+					if (preview.find('.title-text').length > 0) {
+						preview.find('.title-text').text(data.postData.title);
+					} else {
+						// For backwards compatibility, remove in 1.16.0
+						preview.html(data.postData.title);
+					}
+				} else {
+					preview.html(data.postData.content);
+				}
 
-            Promise.allSettled(promises).then(function (results) {
-                const fulfilled = results.filter(res => res.status === 'fulfilled').length;
-                const errors = results.filter(res => res.status === 'rejected');
-                if (fulfilled) {
-                    alerts.success(`[[post-queue:bulk-${action}-success, ${fulfilled}]]`);
-                    ajaxify.refresh();
-                }
+				textarea.parent().addClass('hidden');
+				preview.removeClass('hidden');
+			});
+		});
+	}
 
-                errors.forEach(res => alerts.error(res.reason));
-            });
-        });
-    }
+	function handleBulkActions() {
+		$('[component="post-queue/bulk-actions"]').on('click', '[data-action]', async function () {
+			const bulkAction = $(this).attr('data-action');
+			let queueEls = $('.posts-list [data-id]');
+			if (bulkAction === 'accept-selected' || bulkAction === 'reject-selected') {
+				queueEls = queueEls.filter(
+					(i, element) => $(element).find('input[type="checkbox"]').is(':checked'),
+				);
+			}
 
-    return PostQueue;
+			const ids = queueEls.map((i, element) => $(element).attr('data-id')).get();
+			const showConfirm = bulkAction === 'reject-all' || bulkAction === 'reject-selected';
+			if (ids.length === 0 || (showConfirm && !(await confirmReject(`[[post-queue:${bulkAction}-confirm, ${ids.length}]]`)))) {
+				return;
+			}
+
+			const action = bulkAction.split('-')[0];
+			const promises = ids.map(id => socket.emit('posts.' + action, {id}));
+
+			Promise.allSettled(promises).then(results => {
+				const fulfilled = results.filter(res => res.status === 'fulfilled').length;
+				const errors = results.filter(res => res.status === 'rejected');
+				if (fulfilled) {
+					alerts.success(`[[post-queue:bulk-${action}-success, ${fulfilled}]]`);
+					ajaxify.refresh();
+				}
+
+				for (const res of errors) {
+					alerts.error(res.reason);
+				}
+			});
+		});
+	}
+
+	return PostQueue;
 });

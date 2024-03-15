@@ -1,11 +1,10 @@
 'use strict';
 
+const util = require('node:util');
 const nconf = require('nconf');
 const winston = require('winston');
 const _ = require('lodash');
 const jwt = require('jsonwebtoken');
-const util = require('util');
-
 const user = require('../../user');
 const languages = require('../../languages');
 const meta = require('../../meta');
@@ -17,227 +16,234 @@ const accountHelpers = require('./helpers');
 
 const settingsController = module.exports;
 
-settingsController.get = async function (req, res, next) {
-    const userData = await accountHelpers.getUserDataByUserSlug(req.params.userslug, req.uid, req.query);
-    if (!userData) {
-        return next();
-    }
-    const [settings, languagesData] = await Promise.all([
-        user.getSettings(userData.uid),
-        languages.list(),
-    ]);
+settingsController.get = async function (request, res, next) {
+	const userData = await accountHelpers.getUserDataByUserSlug(request.params.userslug, request.uid, request.query);
+	if (!userData) {
+		return next();
+	}
 
-    userData.settings = settings;
-    userData.languages = languagesData;
-    if (userData.isAdmin && userData.isSelf) {
-        userData.acpLanguages = _.cloneDeep(languagesData);
-    }
+	const [settings, languagesData] = await Promise.all([
+		user.getSettings(userData.uid),
+		languages.list(),
+	]);
 
-    const data = await plugins.hooks.fire('filter:user.customSettings', {
-        settings: settings,
-        customSettings: [],
-        uid: req.uid,
-    });
+	userData.settings = settings;
+	userData.languages = languagesData;
+	if (userData.isAdmin && userData.isSelf) {
+		userData.acpLanguages = _.cloneDeep(languagesData);
+	}
 
-    const [notificationSettings, routes] = await Promise.all([
-        getNotificationSettings(userData),
-        getHomePageRoutes(userData),
-    ]);
+	const data = await plugins.hooks.fire('filter:user.customSettings', {
+		settings,
+		customSettings: [],
+		uid: request.uid,
+	});
 
-    userData.customSettings = data.customSettings;
-    userData.homePageRoutes = routes;
-    userData.notificationSettings = notificationSettings;
-    userData.disableEmailSubscriptions = meta.config.disableEmailSubscriptions;
+	const [notificationSettings, routes] = await Promise.all([
+		getNotificationSettings(userData),
+		getHomePageRoutes(userData),
+	]);
 
-    userData.dailyDigestFreqOptions = [
-        { value: 'off', name: '[[user:digest_off]]', selected: userData.settings.dailyDigestFreq === 'off' },
-        { value: 'day', name: '[[user:digest_daily]]', selected: userData.settings.dailyDigestFreq === 'day' },
-        { value: 'week', name: '[[user:digest_weekly]]', selected: userData.settings.dailyDigestFreq === 'week' },
-        { value: 'biweek', name: '[[user:digest_biweekly]]', selected: userData.settings.dailyDigestFreq === 'biweek' },
-        { value: 'month', name: '[[user:digest_monthly]]', selected: userData.settings.dailyDigestFreq === 'month' },
-    ];
+	userData.customSettings = data.customSettings;
+	userData.homePageRoutes = routes;
+	userData.notificationSettings = notificationSettings;
+	userData.disableEmailSubscriptions = meta.config.disableEmailSubscriptions;
 
-    userData.bootswatchSkinOptions = [
-        { name: 'Default', value: '' },
-        { name: 'Cerulean', value: 'cerulean' },
-        { name: 'Cosmo', value: 'cosmo' },
-        { name: 'Cyborg', value: 'cyborg' },
-        { name: 'Darkly', value: 'darkly' },
-        { name: 'Flatly', value: 'flatly' },
-        { name: 'Journal', value: 'journal' },
-        { name: 'Lumen', value: 'lumen' },
-        { name: 'Paper', value: 'paper' },
-        { name: 'Readable', value: 'readable' },
-        { name: 'Sandstone', value: 'sandstone' },
-        { name: 'Simplex', value: 'simplex' },
-        { name: 'Slate', value: 'slate' },
-        { name: 'Spacelab', value: 'spacelab' },
-        { name: 'Superhero', value: 'superhero' },
-        { name: 'United', value: 'united' },
-        { name: 'Yeti', value: 'yeti' },
-    ];
+	userData.dailyDigestFreqOptions = [
+		{value: 'off', name: '[[user:digest_off]]', selected: userData.settings.dailyDigestFreq === 'off'},
+		{value: 'day', name: '[[user:digest_daily]]', selected: userData.settings.dailyDigestFreq === 'day'},
+		{value: 'week', name: '[[user:digest_weekly]]', selected: userData.settings.dailyDigestFreq === 'week'},
+		{value: 'biweek', name: '[[user:digest_biweekly]]', selected: userData.settings.dailyDigestFreq === 'biweek'},
+		{value: 'month', name: '[[user:digest_monthly]]', selected: userData.settings.dailyDigestFreq === 'month'},
+	];
 
-    userData.bootswatchSkinOptions.forEach((skin) => {
-        skin.selected = skin.value === userData.settings.bootswatchSkin;
-    });
+	userData.bootswatchSkinOptions = [
+		{name: 'Default', value: ''},
+		{name: 'Cerulean', value: 'cerulean'},
+		{name: 'Cosmo', value: 'cosmo'},
+		{name: 'Cyborg', value: 'cyborg'},
+		{name: 'Darkly', value: 'darkly'},
+		{name: 'Flatly', value: 'flatly'},
+		{name: 'Journal', value: 'journal'},
+		{name: 'Lumen', value: 'lumen'},
+		{name: 'Paper', value: 'paper'},
+		{name: 'Readable', value: 'readable'},
+		{name: 'Sandstone', value: 'sandstone'},
+		{name: 'Simplex', value: 'simplex'},
+		{name: 'Slate', value: 'slate'},
+		{name: 'Spacelab', value: 'spacelab'},
+		{name: 'Superhero', value: 'superhero'},
+		{name: 'United', value: 'united'},
+		{name: 'Yeti', value: 'yeti'},
+	];
 
-    userData.languages.forEach((language) => {
-        language.selected = language.code === userData.settings.userLang;
-    });
+	for (const skin of userData.bootswatchSkinOptions) {
+		skin.selected = skin.value === userData.settings.bootswatchSkin;
+	}
 
-    if (userData.isAdmin && userData.isSelf) {
-        userData.acpLanguages.forEach((language) => {
-            language.selected = language.code === userData.settings.acpLang;
-        });
-    }
+	for (const language of userData.languages) {
+		language.selected = language.code === userData.settings.userLang;
+	}
 
-    const notifFreqOptions = [
-        'all',
-        'first',
-        'everyTen',
-        'threshold',
-        'logarithmic',
-        'disabled',
-    ];
+	if (userData.isAdmin && userData.isSelf) {
+		for (const language of userData.acpLanguages) {
+			language.selected = language.code === userData.settings.acpLang;
+		}
+	}
 
-    userData.upvoteNotifFreq = notifFreqOptions.map(
-        name => ({ name: name, selected: name === userData.settings.upvoteNotifFreq })
-    );
+	const notificationFreqOptions = [
+		'all',
+		'first',
+		'everyTen',
+		'threshold',
+		'logarithmic',
+		'disabled',
+	];
 
-    userData.categoryWatchState = { [userData.settings.categoryWatchState]: true };
+	userData.upvoteNotifFreq = notificationFreqOptions.map(
+		name => ({name, selected: name === userData.settings.upvoteNotifFreq}),
+	);
 
-    userData.disableCustomUserSkins = meta.config.disableCustomUserSkins || 0;
+	userData.categoryWatchState = {[userData.settings.categoryWatchState]: true};
 
-    userData.allowUserHomePage = meta.config.allowUserHomePage === 1 ? 1 : 0;
+	userData.disableCustomUserSkins = meta.config.disableCustomUserSkins || 0;
 
-    userData.hideFullname = meta.config.hideFullname || 0;
-    userData.hideEmail = meta.config.hideEmail || 0;
+	userData.allowUserHomePage = meta.config.allowUserHomePage === 1 ? 1 : 0;
 
-    userData.inTopicSearchAvailable = plugins.hooks.hasListeners('filter:topic.search');
+	userData.hideFullname = meta.config.hideFullname || 0;
+	userData.hideEmail = meta.config.hideEmail || 0;
 
-    userData.maxTopicsPerPage = meta.config.maxTopicsPerPage;
-    userData.maxPostsPerPage = meta.config.maxPostsPerPage;
+	userData.inTopicSearchAvailable = plugins.hooks.hasListeners('filter:topic.search');
 
-    userData.title = '[[pages:account/settings]]';
-    userData.breadcrumbs = helpers.buildBreadcrumbs([{ text: userData.username, url: `/user/${userData.userslug}` }, { text: '[[user:settings]]' }]);
+	userData.maxTopicsPerPage = meta.config.maxTopicsPerPage;
+	userData.maxPostsPerPage = meta.config.maxPostsPerPage;
 
-    res.render('account/settings', userData);
+	userData.title = '[[pages:account/settings]]';
+	userData.breadcrumbs = helpers.buildBreadcrumbs([{text: userData.username, url: `/user/${userData.userslug}`}, {text: '[[user:settings]]'}]);
+
+	res.render('account/settings', userData);
 };
 
-const unsubscribable = ['digest', 'notification'];
+const unsubscribable = new Set(['digest', 'notification']);
 const jwtVerifyAsync = util.promisify((token, callback) => {
-    jwt.verify(token, nconf.get('secret'), (err, payload) => callback(err, payload));
+	jwt.verify(token, nconf.get('secret'), (error, payload) => callback(error, payload));
 });
-const doUnsubscribe = async (payload) => {
-    if (payload.template === 'digest') {
-        await Promise.all([
-            user.setSetting(payload.uid, 'dailyDigestFreq', 'off'),
-            user.updateDigestSetting(payload.uid, 'off'),
-        ]);
-    } else if (payload.template === 'notification') {
-        const current = await db.getObjectField(`user:${payload.uid}:settings`, `notificationType_${payload.type}`);
-        await user.setSetting(payload.uid, `notificationType_${payload.type}`, (current === 'notificationemail' ? 'notification' : 'none'));
-    }
-    return true;
+const doUnsubscribe = async payload => {
+	if (payload.template === 'digest') {
+		await Promise.all([
+			user.setSetting(payload.uid, 'dailyDigestFreq', 'off'),
+			user.updateDigestSetting(payload.uid, 'off'),
+		]);
+	} else if (payload.template === 'notification') {
+		const current = await db.getObjectField(`user:${payload.uid}:settings`, `notificationType_${payload.type}`);
+		await user.setSetting(payload.uid, `notificationType_${payload.type}`, (current === 'notificationemail' ? 'notification' : 'none'));
+	}
+
+	return true;
 };
 
-settingsController.unsubscribe = async (req, res) => {
-    try {
-        const payload = await jwtVerifyAsync(req.params.token);
-        if (!payload || !unsubscribable.includes(payload.template)) {
-            return;
-        }
-        await doUnsubscribe(payload);
-        res.render('unsubscribe', {
-            payload,
-        });
-    } catch (err) {
-        res.render('unsubscribe', {
-            error: err.message,
-        });
-    }
+settingsController.unsubscribe = async (request, res) => {
+	try {
+		const payload = await jwtVerifyAsync(request.params.token);
+		if (!payload || !unsubscribable.has(payload.template)) {
+			return;
+		}
+
+		await doUnsubscribe(payload);
+		res.render('unsubscribe', {
+			payload,
+		});
+	} catch (error) {
+		res.render('unsubscribe', {
+			error: error.message,
+		});
+	}
 };
 
-settingsController.unsubscribePost = async function (req, res) {
-    let payload;
-    try {
-        payload = await jwtVerifyAsync(req.params.token);
-        if (!payload || !unsubscribable.includes(payload.template)) {
-            return res.sendStatus(404);
-        }
-    } catch (err) {
-        return res.sendStatus(403);
-    }
-    try {
-        await doUnsubscribe(payload);
-        res.sendStatus(200);
-    } catch (err) {
-        winston.error(`[settings/unsubscribe] One-click unsubscribe failed with error: ${err.message}`);
-        res.sendStatus(500);
-    }
+settingsController.unsubscribePost = async function (request, res) {
+	let payload;
+	try {
+		payload = await jwtVerifyAsync(request.params.token);
+		if (!payload || !unsubscribable.has(payload.template)) {
+			return res.sendStatus(404);
+		}
+	} catch {
+		return res.sendStatus(403);
+	}
+
+	try {
+		await doUnsubscribe(payload);
+		res.sendStatus(200);
+	} catch (error) {
+		winston.error(`[settings/unsubscribe] One-click unsubscribe failed with error: ${error.message}`);
+		res.sendStatus(500);
+	}
 };
 
 async function getNotificationSettings(userData) {
-    const privilegedTypes = [];
+	const privilegedTypes = [];
 
-    const privileges = await user.getPrivileges(userData.uid);
-    if (privileges.isAdmin) {
-        privilegedTypes.push('notificationType_new-register');
-    }
-    if (privileges.isAdmin || privileges.isGlobalMod || privileges.isModeratorOfAnyCategory) {
-        privilegedTypes.push('notificationType_post-queue', 'notificationType_new-post-flag');
-    }
-    if (privileges.isAdmin || privileges.isGlobalMod) {
-        privilegedTypes.push('notificationType_new-user-flag');
-    }
-    const results = await plugins.hooks.fire('filter:user.notificationTypes', {
-        types: notifications.baseTypes.slice(),
-        privilegedTypes: privilegedTypes,
-    });
+	const privileges = await user.getPrivileges(userData.uid);
+	if (privileges.isAdmin) {
+		privilegedTypes.push('notificationType_new-register');
+	}
 
-    function modifyType(type) {
-        const setting = userData.settings[type];
-        return {
-            name: type,
-            label: `[[notifications:${type}]]`,
-            none: setting === 'none',
-            notification: setting === 'notification',
-            email: setting === 'email',
-            notificationemail: setting === 'notificationemail',
-        };
-    }
+	if (privileges.isAdmin || privileges.isGlobalMod || privileges.isModeratorOfAnyCategory) {
+		privilegedTypes.push('notificationType_post-queue', 'notificationType_new-post-flag');
+	}
 
-    if (meta.config.disableChat) {
-        results.types = results.types.filter(type => type !== 'notificationType_new-chat');
-    }
+	if (privileges.isAdmin || privileges.isGlobalMod) {
+		privilegedTypes.push('notificationType_new-user-flag');
+	}
 
-    return results.types.map(modifyType).concat(results.privilegedTypes.map(modifyType));
+	const results = await plugins.hooks.fire('filter:user.notificationTypes', {
+		types: notifications.baseTypes.slice(),
+		privilegedTypes,
+	});
+
+	function modifyType(type) {
+		const setting = userData.settings[type];
+		return {
+			name: type,
+			label: `[[notifications:${type}]]`,
+			none: setting === 'none',
+			notification: setting === 'notification',
+			email: setting === 'email',
+			notificationemail: setting === 'notificationemail',
+		};
+	}
+
+	if (meta.config.disableChat) {
+		results.types = results.types.filter(type => type !== 'notificationType_new-chat');
+	}
+
+	return results.types.map(modifyType).concat(results.privilegedTypes.map(modifyType));
 }
 
 async function getHomePageRoutes(userData) {
-    let routes = await helpers.getHomePageRoutes(userData.uid);
+	let routes = await helpers.getHomePageRoutes(userData.uid);
 
-    // Set selected for each route
-    let customIdx;
-    let hasSelected = false;
-    routes = routes.map((route, idx) => {
-        if (route.route === userData.settings.homePageRoute) {
-            route.selected = true;
-            hasSelected = true;
-        } else {
-            route.selected = false;
-        }
+	// Set selected for each route
+	let customIndex;
+	let hasSelected = false;
+	routes = routes.map((route, index) => {
+		if (route.route === userData.settings.homePageRoute) {
+			route.selected = true;
+			hasSelected = true;
+		} else {
+			route.selected = false;
+		}
 
-        if (route.route === 'custom') {
-            customIdx = idx;
-        }
+		if (route.route === 'custom') {
+			customIndex = index;
+		}
 
-        return route;
-    });
+		return route;
+	});
 
-    if (!hasSelected && customIdx && userData.settings.homePageRoute !== 'none') {
-        routes[customIdx].selected = true;
-    }
+	if (!hasSelected && customIndex && userData.settings.homePageRoute !== 'none') {
+		routes[customIndex].selected = true;
+	}
 
-    return routes;
+	return routes;
 }

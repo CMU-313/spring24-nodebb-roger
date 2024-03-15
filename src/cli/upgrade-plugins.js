@@ -1,159 +1,160 @@
 'use strict';
 
+const cproc = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
 const prompt = require('prompt');
 const request = require('request-promise-native');
-const cproc = require('child_process');
 const semver = require('semver');
-const fs = require('fs');
-const path = require('path');
 const chalk = require('chalk');
-
-const { paths, pluginNamePattern } = require('../constants');
+const {paths, pluginNamePattern} = require('../constants');
 const pkgInstall = require('./package-install');
 
 const packageManager = pkgInstall.getPackageManager();
 let packageManagerExecutable = packageManager;
-const packageManagerInstallArgs = packageManager === 'yarn' ? ['add'] : ['install', '--save'];
+const packageManagerInstallArguments = packageManager === 'yarn' ? ['add'] : ['install', '--save'];
 
 if (process.platform === 'win32') {
-    packageManagerExecutable += '.cmd';
+	packageManagerExecutable += '.cmd';
 }
 
 async function getModuleVersions(modules) {
-    const versionHash = {};
-    const batch = require('../batch');
-    await batch.processArray(modules, async (moduleNames) => {
-        await Promise.all(moduleNames.map(async (module) => {
-            let pkg = await fs.promises.readFile(
-                path.join(paths.nodeModules, module, 'package.json'), { encoding: 'utf-8' }
-            );
-            pkg = JSON.parse(pkg);
-            versionHash[module] = pkg.version;
-        }));
-    }, {
-        batch: 50,
-    });
+	const versionHash = {};
+	const batch = require('../batch');
+	await batch.processArray(modules, async moduleNames => {
+		await Promise.all(moduleNames.map(async module => {
+			let package_ = await fs.promises.readFile(
+				path.join(paths.nodeModules, module, 'package.json'), {encoding: 'utf-8'},
+			);
+			package_ = JSON.parse(package_);
+			versionHash[module] = package_.version;
+		}));
+	}, {
+		batch: 50,
+	});
 
-    return versionHash;
+	return versionHash;
 }
 
 async function getInstalledPlugins() {
-    let [deps, bundled] = await Promise.all([
-        fs.promises.readFile(paths.currentPackage, { encoding: 'utf-8' }),
-        fs.promises.readFile(paths.installPackage, { encoding: 'utf-8' }),
-    ]);
+	let [deps, bundled] = await Promise.all([
+		fs.promises.readFile(paths.currentPackage, {encoding: 'utf-8'}),
+		fs.promises.readFile(paths.installPackage, {encoding: 'utf-8'}),
+	]);
 
-    deps = Object.keys(JSON.parse(deps).dependencies)
-        .filter(pkgName => pluginNamePattern.test(pkgName));
-    bundled = Object.keys(JSON.parse(bundled).dependencies)
-        .filter(pkgName => pluginNamePattern.test(pkgName));
+	deps = Object.keys(JSON.parse(deps).dependencies)
+		.filter(packageName => pluginNamePattern.test(packageName));
+	bundled = Object.keys(JSON.parse(bundled).dependencies)
+		.filter(packageName => pluginNamePattern.test(packageName));
 
+	// Whittle down deps to send back only extraneously installed plugins/themes/etc
+	const checklist = deps.filter(packageName => {
+		if (bundled.includes(packageName)) {
+			return false;
+		}
 
-    // Whittle down deps to send back only extraneously installed plugins/themes/etc
-    const checklist = deps.filter((pkgName) => {
-        if (bundled.includes(pkgName)) {
-            return false;
-        }
+		// Ignore git repositories
+		try {
+			fs.accessSync(path.join(paths.nodeModules, packageName, '.git'));
+			return false;
+		} catch {
+			return true;
+		}
+	});
 
-        // Ignore git repositories
-        try {
-            fs.accessSync(path.join(paths.nodeModules, pkgName, '.git'));
-            return false;
-        } catch (e) {
-            return true;
-        }
-    });
-
-    return await getModuleVersions(checklist);
+	return await getModuleVersions(checklist);
 }
 
 async function getCurrentVersion() {
-    let pkg = await fs.promises.readFile(paths.installPackage, { encoding: 'utf-8' });
-    pkg = JSON.parse(pkg);
-    return pkg.version;
+	let package_ = await fs.promises.readFile(paths.installPackage, {encoding: 'utf-8'});
+	package_ = JSON.parse(package_);
+	return package_.version;
 }
 
 async function getSuggestedModules(nbbVersion, toCheck) {
-    let body = await request({
-        method: 'GET',
-        url: `https://packages.nodebb.org/api/v1/suggest?version=${nbbVersion}&package[]=${toCheck.join('&package[]=')}`,
-        json: true,
-    });
-    if (!Array.isArray(body) && toCheck.length === 1) {
-        body = [body];
-    }
-    return body;
+	let body = await request({
+		method: 'GET',
+		url: `https://packages.nodebb.org/api/v1/suggest?version=${nbbVersion}&package[]=${toCheck.join('&package[]=')}`,
+		json: true,
+	});
+	if (!Array.isArray(body) && toCheck.length === 1) {
+		body = [body];
+	}
+
+	return body;
 }
 
 async function checkPlugins() {
-    process.stdout.write('Checking installed plugins and themes for updates... ');
-    const [plugins, nbbVersion] = await Promise.all([
-        getInstalledPlugins(),
-        getCurrentVersion(),
-    ]);
+	process.stdout.write('Checking installed plugins and themes for updates... ');
+	const [plugins, nbbVersion] = await Promise.all([
+		getInstalledPlugins(),
+		getCurrentVersion(),
+	]);
 
-    const toCheck = Object.keys(plugins);
-    if (!toCheck.length) {
-        process.stdout.write(chalk.green('  OK'));
-        return []; // no extraneous plugins installed
-    }
-    const suggestedModules = await getSuggestedModules(nbbVersion, toCheck);
-    process.stdout.write(chalk.green('  OK'));
+	const toCheck = Object.keys(plugins);
+	if (toCheck.length === 0) {
+		process.stdout.write(chalk.green('  OK'));
+		return []; // No extraneous plugins installed
+	}
 
-    let current;
-    let suggested;
-    const upgradable = suggestedModules.map((suggestObj) => {
-        current = plugins[suggestObj.package];
-        suggested = suggestObj.version;
+	const suggestedModules = await getSuggestedModules(nbbVersion, toCheck);
+	process.stdout.write(chalk.green('  OK'));
 
-        if (suggestObj.code === 'match-found' && semver.gt(suggested, current)) {
-            return {
-                name: suggestObj.package,
-                current: current,
-                suggested: suggested,
-            };
-        }
-        return null;
-    }).filter(Boolean);
+	let current;
+	let suggested;
+	const upgradable = suggestedModules.map(suggestObject => {
+		current = plugins[suggestObject.package];
+		suggested = suggestObject.version;
 
-    return upgradable;
+		if (suggestObject.code === 'match-found' && semver.gt(suggested, current)) {
+			return {
+				name: suggestObject.package,
+				current,
+				suggested,
+			};
+		}
+
+		return null;
+	}).filter(Boolean);
+
+	return upgradable;
 }
 
 async function upgradePlugins() {
-    try {
-        const found = await checkPlugins();
-        if (found && found.length) {
-            process.stdout.write(`\n\nA total of ${chalk.bold(String(found.length))} package(s) can be upgraded:\n\n`);
-            found.forEach((suggestObj) => {
-                process.stdout.write(`${chalk.yellow('  * ') + suggestObj.name} (${chalk.yellow(suggestObj.current)} -> ${chalk.green(suggestObj.suggested)})\n`);
-            });
-        } else {
-            console.log(chalk.green('\nAll packages up-to-date!'));
-            return;
-        }
+	try {
+		const found = await checkPlugins();
+		if (found && found.length > 0) {
+			process.stdout.write(`\n\nA total of ${chalk.bold(String(found.length))} package(s) can be upgraded:\n\n`);
+			for (const suggestObject of found) {
+				process.stdout.write(`${chalk.yellow('  * ') + suggestObject.name} (${chalk.yellow(suggestObject.current)} -> ${chalk.green(suggestObject.suggested)})\n`);
+			}
+		} else {
+			console.log(chalk.green('\nAll packages up-to-date!'));
+			return;
+		}
 
-        prompt.message = '';
-        prompt.delimiter = '';
+		prompt.message = '';
+		prompt.delimiter = '';
 
-        prompt.start();
-        const result = await prompt.get({
-            name: 'upgrade',
-            description: '\nProceed with upgrade (y|n)?',
-            type: 'string',
-        });
+		prompt.start();
+		const result = await prompt.get({
+			name: 'upgrade',
+			description: '\nProceed with upgrade (y|n)?',
+			type: 'string',
+		});
 
-        if (['y', 'Y', 'yes', 'YES'].includes(result.upgrade)) {
-            console.log('\nUpgrading packages...');
-            const args = packageManagerInstallArgs.concat(found.map(suggestObj => `${suggestObj.name}@${suggestObj.suggested}`));
+		if (['y', 'Y', 'yes', 'YES'].includes(result.upgrade)) {
+			console.log('\nUpgrading packages...');
+			const arguments_ = packageManagerInstallArguments.concat(found.map(suggestObject => `${suggestObject.name}@${suggestObject.suggested}`));
 
-            cproc.execFileSync(packageManagerExecutable, args, { stdio: 'ignore' });
-        } else {
-            console.log(`${chalk.yellow('Package upgrades skipped')}. Check for upgrades at any time by running "${chalk.green('./nodebb upgrade -p')}".`);
-        }
-    } catch (err) {
-        console.log(`${chalk.yellow('Warning')}: An unexpected error occured when attempting to verify plugin upgradability`);
-        throw err;
-    }
+			cproc.execFileSync(packageManagerExecutable, arguments_, {stdio: 'ignore'});
+		} else {
+			console.log(`${chalk.yellow('Package upgrades skipped')}. Check for upgrades at any time by running "${chalk.green('./nodebb upgrade -p')}".`);
+		}
+	} catch (error) {
+		console.log(`${chalk.yellow('Warning')}: An unexpected error occured when attempting to verify plugin upgradability`);
+		throw error;
+	}
 }
 
 exports.upgradePlugins = upgradePlugins;

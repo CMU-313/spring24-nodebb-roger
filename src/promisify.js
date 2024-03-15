@@ -1,61 +1,64 @@
 'use strict';
 
-const util = require('util');
+const util = require('node:util');
 
 module.exports = function (theModule, ignoreKeys) {
-    ignoreKeys = ignoreKeys || [];
-    function isCallbackedFunction(func) {
-        if (typeof func !== 'function') {
-            return false;
-        }
-        const str = func.toString().split('\n')[0];
-        return str.includes('callback)');
-    }
+	ignoreKeys ||= [];
+	function isCallbackedFunction(function_) {
+		if (typeof function_ !== 'function') {
+			return false;
+		}
 
-    function isAsyncFunction(fn) {
-        return fn && fn.constructor && fn.constructor.name === 'AsyncFunction';
-    }
+		const string_ = function_.toString().split('\n')[0];
+		return string_.includes('callback)');
+	}
 
-    function promisifyRecursive(module) {
-        if (!module) {
-            return;
-        }
+	function isAsyncFunction(function_) {
+		return function_ && function_.constructor && function_.constructor.name === 'AsyncFunction';
+	}
 
-        const keys = Object.keys(module);
-        keys.forEach((key) => {
-            if (ignoreKeys.includes(key)) {
-                return;
-            }
-            if (isAsyncFunction(module[key])) {
-                module[key] = wrapCallback(module[key], util.callbackify(module[key]));
-            } else if (isCallbackedFunction(module[key])) {
-                module[key] = wrapPromise(module[key], util.promisify(module[key]));
-            } else if (typeof module[key] === 'object') {
-                promisifyRecursive(module[key]);
-            }
-        });
-    }
+	function promisifyRecursive(module) {
+		if (!module) {
+			return;
+		}
 
-    function wrapCallback(origFn, callbackFn) {
-        return async function wrapperCallback(...args) {
-            if (args.length && typeof args[args.length - 1] === 'function') {
-                const cb = args.pop();
-                args.push((err, res) => (res !== undefined ? cb(err, res) : cb(err)));
-                return callbackFn(...args);
-            }
-            return origFn(...args);
-        };
-    }
+		const keys = Object.keys(module);
+		for (const key of keys) {
+			if (ignoreKeys.includes(key)) {
+				continue;
+			}
 
-    function wrapPromise(origFn, promiseFn) {
-        return function wrapperPromise(...args) {
-            if (args.length && typeof args[args.length - 1] === 'function') {
-                return origFn(...args);
-            }
+			if (isAsyncFunction(module[key])) {
+				module[key] = wrapCallback(module[key], util.callbackify(module[key]));
+			} else if (isCallbackedFunction(module[key])) {
+				module[key] = wrapPromise(module[key], util.promisify(module[key]));
+			} else if (typeof module[key] === 'object') {
+				promisifyRecursive(module[key]);
+			}
+		}
+	}
 
-            return promiseFn(...args);
-        };
-    }
+	function wrapCallback(origFunction, callbackFunction) {
+		return async function wrapperCallback(...arguments_) {
+			if (arguments_.length > 0 && typeof arguments_.at(-1) === 'function') {
+				const callback = arguments_.pop();
+				arguments_.push((error, res) => (res === undefined ? callback(error) : callback(error, res)));
+				return callbackFunction(...arguments_);
+			}
 
-    promisifyRecursive(theModule);
+			return origFunction(...arguments_);
+		};
+	}
+
+	function wrapPromise(origFunction, promiseFunction) {
+		return function wrapperPromise(...arguments_) {
+			if (arguments_.length > 0 && typeof arguments_.at(-1) === 'function') {
+				return origFunction(...arguments_);
+			}
+
+			return promiseFunction(...arguments_);
+		};
+	}
+
+	promisifyRecursive(theModule);
 };

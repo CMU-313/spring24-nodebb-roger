@@ -3,82 +3,89 @@
 /**
  * Checks localStorage and provides a fallback if it doesn't exist or is disabled
  */
-define('storage', function () {
-    function Storage() {
-        this._store = {};
-        this._keys = [];
-    }
-    Storage.prototype.isMock = true;
-    Storage.prototype.setItem = function (key, val) {
-        key = String(key);
-        if (this._keys.indexOf(key) === -1) {
-            this._keys.push(key);
-        }
-        this._store[key] = val;
-    };
-    Storage.prototype.getItem = function (key) {
-        key = String(key);
-        if (this._keys.indexOf(key) === -1) {
-            return null;
-        }
+define('storage', () => {
+	function Storage() {
+		this._store = {};
+		this._keys = [];
+	}
 
-        return this._store[key];
-    };
-    Storage.prototype.removeItem = function (key) {
-        key = String(key);
-        this._keys = this._keys.filter(function (x) {
-            return x !== key;
-        });
-        this._store[key] = null;
-    };
-    Storage.prototype.clear = function () {
-        this._keys = [];
-        this._store = {};
-    };
-    Storage.prototype.key = function (n) {
-        n = parseInt(n, 10) || 0;
-        return this._keys[n];
-    };
-    if (Object.defineProperty) {
-        Object.defineProperty(Storage.prototype, 'length', {
-            get: function () {
-                return this._keys.length;
-            },
-        });
-    }
+	Storage.prototype.isMock = true;
+	Storage.prototype.setItem = function (key, value) {
+		key = String(key);
+		if (!this._keys.includes(key)) {
+			this._keys.push(key);
+		}
 
-    let storage;
-    const item = Date.now().toString();
+		this._store[key] = value;
+	};
 
-    try {
-        storage = window.localStorage;
-        storage.setItem(item, item);
-        if (storage.getItem(item) !== item) {
-            throw Error('localStorage behaved unexpectedly');
-        }
-        storage.removeItem(item);
+	Storage.prototype.getItem = function (key) {
+		key = String(key);
+		if (!this._keys.includes(key)) {
+			return null;
+		}
 
-        return storage;
-    } catch (e) {
-        console.warn(e);
-        console.warn('localStorage failed, falling back on sessionStorage');
+		return this._store[key];
+	};
 
-        // see if sessionStorage works, and if so, return that
-        try {
-            storage = window.sessionStorage;
-            storage.setItem(item, item);
-            if (storage.getItem(item) !== item) {
-                throw Error('sessionStorage behaved unexpectedly');
-            }
-            storage.removeItem(item);
+	Storage.prototype.removeItem = function (key) {
+		key = String(key);
+		this._keys = this._keys.filter(x => x !== key);
+		this._store[key] = null;
+	};
 
-            return storage;
-        } catch (e) {
-            console.warn(e);
-            console.warn('sessionStorage failed, falling back on memory storage');
+	Storage.prototype.clear = function () {
+		this._keys = [];
+		this._store = {};
+	};
 
-            // return an object implementing mock methods
-            return new Storage();
-        }
-    }
+	Storage.prototype.key = function (n) {
+		n = Number.parseInt(n, 10) || 0;
+		return this._keys[n];
+	};
+
+	if (Object.defineProperty) {
+		Object.defineProperty(Storage.prototype, 'length', {
+			get() {
+				return this._keys.length;
+			},
+		});
+	}
+
+	let storage;
+	const item = Date.now().toString();
+
+	try {
+		storage = window.localStorage;
+		storage.setItem(item, item);
+		if (storage.getItem(item) !== item) {
+			throw new Error('localStorage behaved unexpectedly');
+		}
+
+		storage.removeItem(item);
+
+		return storage;
+	} catch (error) {
+		console.warn(error);
+		console.warn('localStorage failed, falling back on sessionStorage');
+
+		// See if sessionStorage works, and if so, return that
+		try {
+			storage = window.sessionStorage;
+			storage.setItem(item, item);
+			if (storage.getItem(item) !== item) {
+				throw new Error('sessionStorage behaved unexpectedly');
+			}
+
+			storage.removeItem(item);
+
+			return storage;
+		} catch (error) {
+			console.warn(error);
+			console.warn('sessionStorage failed, falling back on memory storage');
+
+			// Return an object implementing mock methods
+			return new Storage();
+		}
+	}
 });

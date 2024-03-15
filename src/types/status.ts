@@ -1,4 +1,4 @@
 export type StatusObject = {
-  code: string;
-  message: string;
+	code: string;
+	message: string;
 };

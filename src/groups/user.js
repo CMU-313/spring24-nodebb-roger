@@ -4,64 +4,65 @@ const db = require('../database');
 const user = require('../user');
 
 module.exports = function (Groups) {
-    Groups.getUsersFromSet = async function (set, fields) {
-        const uids = await db.getSetMembers(set);
+	Groups.getUsersFromSet = async function (set, fields) {
+		const uids = await db.getSetMembers(set);
 
-        if (fields) {
-            return await user.getUsersFields(uids, fields);
-        }
-        return await user.getUsersData(uids);
-    };
+		if (fields) {
+			return await user.getUsersFields(uids, fields);
+		}
 
-    Groups.getUserGroups = async function (uids) {
-        return await Groups.getUserGroupsFromSet('groups:visible:createtime', uids);
-    };
+		return await user.getUsersData(uids);
+	};
 
-    Groups.getUserGroupsFromSet = async function (set, uids) {
-        const memberOf = await Groups.getUserGroupMembership(set, uids);
-        return await Promise.all(memberOf.map(memberOf => Groups.getGroupsData(memberOf)));
-    };
+	Groups.getUserGroups = async function (uids) {
+		return await Groups.getUserGroupsFromSet('groups:visible:createtime', uids);
+	};
 
-    Groups.getUserGroupMembership = async function (set, uids) {
-        const groupNames = await db.getSortedSetRevRange(set, 0, -1);
-        return await Promise.all(uids.map(uid => findUserGroups(uid, groupNames)));
-    };
+	Groups.getUserGroupsFromSet = async function (set, uids) {
+		const memberOf = await Groups.getUserGroupMembership(set, uids);
+		return await Promise.all(memberOf.map(memberOf => Groups.getGroupsData(memberOf)));
+	};
 
-    async function findUserGroups(uid, groupNames) {
-        const isMembers = await Groups.isMemberOfGroups(uid, groupNames);
-        return groupNames.filter((name, i) => isMembers[i]);
-    }
+	Groups.getUserGroupMembership = async function (set, uids) {
+		const groupNames = await db.getSortedSetRevRange(set, 0, -1);
+		return await Promise.all(uids.map(uid => findUserGroups(uid, groupNames)));
+	};
 
-    Groups.getUserInviteGroups = async function (uid) {
-        let allGroups = await Groups.getNonPrivilegeGroups('groups:createtime', 0, -1);
-        allGroups = allGroups.filter(group => !Groups.ephemeralGroups.includes(group.name));
+	async function findUserGroups(uid, groupNames) {
+		const isMembers = await Groups.isMemberOfGroups(uid, groupNames);
+		return groupNames.filter((name, i) => isMembers[i]);
+	}
 
-        const publicGroups = allGroups.filter(group => group.hidden === 0 && group.system === 0 && group.private === 0);
-        const adminModGroups = [
-            { name: 'administrators', displayName: 'administrators' },
-            { name: 'Global Moderators', displayName: 'Global Moderators' },
-        ];
-        // Private (but not hidden)
-        const privateGroups = allGroups.filter(group => group.hidden === 0 &&
-            group.system === 0 && group.private === 1);
+	Groups.getUserInviteGroups = async function (uid) {
+		let allGroups = await Groups.getNonPrivilegeGroups('groups:createtime', 0, -1);
+		allGroups = allGroups.filter(group => !Groups.ephemeralGroups.includes(group.name));
 
-        const [ownership, isAdmin, isGlobalMod] = await Promise.all([
-            Promise.all(privateGroups.map(group => Groups.ownership.isOwner(uid, group.name))),
-            user.isAdministrator(uid),
-            user.isGlobalModerator(uid),
-        ]);
-        const ownGroups = privateGroups.filter((group, index) => ownership[index]);
+		const publicGroups = allGroups.filter(group => group.hidden === 0 && group.system === 0 && group.private === 0);
+		const adminModuleGroups = [
+			{name: 'administrators', displayName: 'administrators'},
+			{name: 'Global Moderators', displayName: 'Global Moderators'},
+		];
+		// Private (but not hidden)
+		const privateGroups = allGroups.filter(group => group.hidden === 0
+            && group.system === 0 && group.private === 1);
 
-        let inviteGroups = [];
-        if (isAdmin) {
-            inviteGroups = inviteGroups.concat(adminModGroups).concat(privateGroups);
-        } else if (isGlobalMod) {
-            inviteGroups = inviteGroups.concat(privateGroups);
-        } else {
-            inviteGroups = inviteGroups.concat(ownGroups);
-        }
+		const [ownership, isAdmin, isGlobalModule] = await Promise.all([
+			Promise.all(privateGroups.map(group => Groups.ownership.isOwner(uid, group.name))),
+			user.isAdministrator(uid),
+			user.isGlobalModerator(uid),
+		]);
+		const ownGroups = privateGroups.filter((group, index) => ownership[index]);
 
-        return inviteGroups
-            .concat(publicGroups);
-    };
+		let inviteGroups = [];
+		if (isAdmin) {
+			inviteGroups = inviteGroups.concat(adminModuleGroups).concat(privateGroups);
+		} else if (isGlobalModule) {
+			inviteGroups = inviteGroups.concat(privateGroups);
+		} else {
+			inviteGroups = inviteGroups.concat(ownGroups);
+		}
+
+		return inviteGroups
+			.concat(publicGroups);
+	};
 };

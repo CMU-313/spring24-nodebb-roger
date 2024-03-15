@@ -8,58 +8,63 @@ const helpers = require('../helpers');
 
 const chatsController = module.exports;
 
-chatsController.get = async function (req, res, next) {
-    if (meta.config.disableChat) {
-        return next();
-    }
+chatsController.get = async function (request, res, next) {
+	if (meta.config.disableChat) {
+		return next();
+	}
 
-    const uid = await user.getUidByUserslug(req.params.userslug);
-    if (!uid) {
-        return next();
-    }
-    const canChat = await privileges.global.can('chat', req.uid);
-    if (!canChat) {
-        return next(new Error('[[error:no-privileges]]'));
-    }
-    const recentChats = await messaging.getRecentChats(req.uid, uid, 0, 19);
-    if (!recentChats) {
-        return next();
-    }
+	const uid = await user.getUidByUserslug(request.params.userslug);
+	if (!uid) {
+		return next();
+	}
 
-    if (!req.params.roomid) {
-        return res.render('chats', {
-            rooms: recentChats.rooms,
-            uid: uid,
-            userslug: req.params.userslug,
-            nextStart: recentChats.nextStart,
-            allowed: true,
-            title: '[[pages:chats]]',
-        });
-    }
-    const room = await messaging.loadRoom(req.uid, { uid: uid, roomId: req.params.roomid });
-    if (!room) {
-        return next();
-    }
+	const canChat = await privileges.global.can('chat', request.uid);
+	if (!canChat) {
+		return next(new Error('[[error:no-privileges]]'));
+	}
 
-    room.rooms = recentChats.rooms;
-    room.nextStart = recentChats.nextStart;
-    room.title = room.roomName || room.usernames || '[[pages:chats]]';
-    room.uid = uid;
-    room.userslug = req.params.userslug;
+	const recentChats = await messaging.getRecentChats(request.uid, uid, 0, 19);
+	if (!recentChats) {
+		return next();
+	}
 
-    room.canViewInfo = await privileges.global.can('view:users:info', uid);
+	if (!request.params.roomid) {
+		return res.render('chats', {
+			rooms: recentChats.rooms,
+			uid,
+			userslug: request.params.userslug,
+			nextStart: recentChats.nextStart,
+			allowed: true,
+			title: '[[pages:chats]]',
+		});
+	}
 
-    res.render('chats', room);
+	const room = await messaging.loadRoom(request.uid, {uid, roomId: request.params.roomid});
+	if (!room) {
+		return next();
+	}
+
+	room.rooms = recentChats.rooms;
+	room.nextStart = recentChats.nextStart;
+	room.title = room.roomName || room.usernames || '[[pages:chats]]';
+	room.uid = uid;
+	room.userslug = request.params.userslug;
+
+	room.canViewInfo = await privileges.global.can('view:users:info', uid);
+
+	res.render('chats', room);
 };
 
-chatsController.redirectToChat = async function (req, res, next) {
-    if (!req.loggedIn) {
-        return next();
-    }
-    const userslug = await user.getUserField(req.uid, 'userslug');
-    if (!userslug) {
-        return next();
-    }
-    const roomid = parseInt(req.params.roomid, 10);
-    helpers.redirect(res, `/user/${userslug}/chats${roomid ? `/${roomid}` : ''}`);
+chatsController.redirectToChat = async function (request, res, next) {
+	if (!request.loggedIn) {
+		return next();
+	}
+
+	const userslug = await user.getUserField(request.uid, 'userslug');
+	if (!userslug) {
+		return next();
+	}
+
+	const roomid = Number.parseInt(request.params.roomid, 10);
+	helpers.redirect(res, `/user/${userslug}/chats${roomid ? `/${roomid}` : ''}`);
 };

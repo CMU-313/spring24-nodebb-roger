@@ -1,101 +1,104 @@
 'use strict';
 
-define('categorySearch', ['alerts'], function (alerts) {
-    const categorySearch = {};
+define('categorySearch', ['alerts'], alerts => {
+	const categorySearch = {};
 
-    categorySearch.init = function (el, options) {
-        let categoriesList = null;
-        options = options || {};
-        options.privilege = options.privilege || 'topics:read';
-        options.states = options.states || ['watching', 'notwatching', 'ignoring'];
+	categorySearch.init = function (element, options) {
+		let categoriesList = null;
+		options ||= {};
+		options.privilege = options.privilege || 'topics:read';
+		options.states = options.states || ['watching', 'notwatching', 'ignoring'];
 
-        let localCategories = [];
-        if (Array.isArray(options.localCategories)) {
-            localCategories = options.localCategories.map(c => ({ ...c }));
-        }
-        options.selectedCids = options.selectedCids || ajaxify.data.selectedCids || [];
+		let localCategories = [];
+		if (Array.isArray(options.localCategories)) {
+			localCategories = options.localCategories.map(c => ({...c}));
+		}
 
-        const searchEl = el.find('[component="category-selector-search"]');
-        if (!searchEl.length) {
-            return;
-        }
+		options.selectedCids = options.selectedCids || ajaxify.data.selectedCids || [];
 
-        const toggleVisibility = searchEl.parent('[component="category/dropdown"]').length > 0 ||
-            searchEl.parent('[component="category-selector"]').length > 0;
+		const searchElement = element.find('[component="category-selector-search"]');
+		if (searchElement.length === 0) {
+			return;
+		}
 
-        el.on('show.bs.dropdown', function () {
-            if (toggleVisibility) {
-                el.find('.dropdown-toggle').addClass('hidden');
-                searchEl.removeClass('hidden');
-            }
+		const toggleVisibility = searchElement.parent('[component="category/dropdown"]').length > 0
+            || searchElement.parent('[component="category-selector"]').length > 0;
 
-            function doSearch() {
-                const val = searchEl.find('input').val();
-                if (val.length > 1 || (!val && !categoriesList)) {
-                    loadList(val, function (categories) {
-                        categoriesList = categoriesList || categories;
-                        renderList(categories);
-                    });
-                } else if (!val && categoriesList) {
-                    categoriesList.forEach(function (c) {
-                        c.selected = options.selectedCids.includes(c.cid);
-                    });
-                    renderList(categoriesList);
-                }
-            }
+		element.on('show.bs.dropdown', () => {
+			if (toggleVisibility) {
+				element.find('.dropdown-toggle').addClass('hidden');
+				searchElement.removeClass('hidden');
+			}
 
-            searchEl.on('click', function (ev) {
-                ev.preventDefault();
-                ev.stopPropagation();
-            });
-            searchEl.find('input').val('').on('keyup', utils.debounce(doSearch, 300));
-            doSearch();
-        });
+			function doSearch() {
+				const value = searchElement.find('input').val();
+				if (value.length > 1 || (!value && !categoriesList)) {
+					loadList(value, categories => {
+						categoriesList ||= categories;
+						renderList(categories);
+					});
+				} else if (!value && categoriesList) {
+					for (const c of categoriesList) {
+						c.selected = options.selectedCids.includes(c.cid);
+					}
 
-        el.on('shown.bs.dropdown', function () {
-            searchEl.find('input').focus();
-        });
+					renderList(categoriesList);
+				}
+			}
 
-        el.on('hide.bs.dropdown', function () {
-            if (toggleVisibility) {
-                el.find('.dropdown-toggle').removeClass('hidden');
-                searchEl.addClass('hidden');
-            }
+			searchElement.on('click', event => {
+				event.preventDefault();
+				event.stopPropagation();
+			});
+			searchElement.find('input').val('').on('keyup', utils.debounce(doSearch, 300));
+			doSearch();
+		});
 
-            searchEl.off('click');
-            searchEl.find('input').off('keyup');
-        });
+		element.on('shown.bs.dropdown', () => {
+			searchElement.find('input').focus();
+		});
 
-        function loadList(search, callback) {
-            socket.emit('categories.categorySearch', {
-                search: search,
-                query: utils.params(),
-                parentCid: options.parentCid || 0,
-                selectedCids: options.selectedCids,
-                privilege: options.privilege,
-                states: options.states,
-                showLinks: options.showLinks,
-            }, function (err, categories) {
-                if (err) {
-                    return alerts.error(err);
-                }
-                callback(localCategories.concat(categories));
-            });
-        }
+		element.on('hide.bs.dropdown', () => {
+			if (toggleVisibility) {
+				element.find('.dropdown-toggle').removeClass('hidden');
+				searchElement.addClass('hidden');
+			}
 
-        function renderList(categories) {
-            app.parseAndTranslate(options.template, {
-                categoryItems: categories.slice(0, 200),
-                selectedCategory: ajaxify.data.selectedCategory,
-                allCategoriesUrl: ajaxify.data.allCategoriesUrl,
-            }, function (html) {
-                el.find('[component="category/list"]')
-                    .replaceWith(html.find('[component="category/list"]'));
-                el.find('[component="category/list"] [component="category/no-matches"]')
-                    .toggleClass('hidden', !!categories.length);
-            });
-        }
-    };
+			searchElement.off('click');
+			searchElement.find('input').off('keyup');
+		});
 
-    return categorySearch;
+		function loadList(search, callback) {
+			socket.emit('categories.categorySearch', {
+				search,
+				query: utils.params(),
+				parentCid: options.parentCid || 0,
+				selectedCids: options.selectedCids,
+				privilege: options.privilege,
+				states: options.states,
+				showLinks: options.showLinks,
+			}, (error, categories) => {
+				if (error) {
+					return alerts.error(error);
+				}
+
+				callback(localCategories.concat(categories));
+			});
+		}
+
+		function renderList(categories) {
+			app.parseAndTranslate(options.template, {
+				categoryItems: categories.slice(0, 200),
+				selectedCategory: ajaxify.data.selectedCategory,
+				allCategoriesUrl: ajaxify.data.allCategoriesUrl,
+			}, html => {
+				element.find('[component="category/list"]')
+					.replaceWith(html.find('[component="category/list"]'));
+				element.find('[component="category/list"] [component="category/no-matches"]')
+					.toggleClass('hidden', categories.length > 0);
+			});
+		}
+	};
+
+	return categorySearch;
 });

@@ -9,9 +9,9 @@ privileges.posts = require('./posts');
 privileges.users = require('./users');
 
 privileges.init = async () => {
-    await privileges.global.init();
-    await privileges.admin.init();
-    await privileges.categories.init();
+	await privileges.global.init();
+	await privileges.admin.init();
+	await privileges.categories.init();
 };
 
 require('../promisify')(privileges);

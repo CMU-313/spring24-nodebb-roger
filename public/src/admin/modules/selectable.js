@@ -1,16 +1,15 @@
 'use strict';
 
-
 define('admin/modules/selectable', [
-    'jquery-ui/widgets/selectable',
-], function () {
-    const selectable = {};
+	'jquery-ui/widgets/selectable',
+], () => {
+	const selectable = {};
 
-    selectable.enable = function (containerEl, targets) {
-        $(containerEl).selectable({
-            filter: targets,
-        });
-    };
+	selectable.enable = function (containerElement, targets) {
+		$(containerElement).selectable({
+			filter: targets,
+		});
+	};
 
-    return selectable;
+	return selectable;
 });

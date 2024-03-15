@@ -1,9 +1,9 @@
 export type Breadcrumbs = {
-  breadcrumbs: Breadcrumb[];
+	breadcrumbs: Breadcrumb[];
 };
 
 export type Breadcrumb = {
-  text: string;
-  url: string;
-  cid: number;
+	text: string;
+	url: string;
+	cid: number;
 };

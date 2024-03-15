@@ -3,36 +3,39 @@
 const db = require('../database');
 
 module.exports = function (Categories) {
-    Categories.markAsRead = async function (cids, uid) {
-        if (!Array.isArray(cids) || !cids.length || parseInt(uid, 10) <= 0) {
-            return;
-        }
-        let keys = cids.map(cid => `cid:${cid}:read_by_uid`);
-        const hasRead = await db.isMemberOfSets(keys, uid);
-        keys = keys.filter((key, index) => !hasRead[index]);
-        await db.setsAdd(keys, uid);
-    };
+	Categories.markAsRead = async function (cids, uid) {
+		if (!Array.isArray(cids) || cids.length === 0 || Number.parseInt(uid, 10) <= 0) {
+			return;
+		}
 
-    Categories.markAsUnreadForAll = async function (cid) {
-        if (!parseInt(cid, 10)) {
-            return;
-        }
-        await db.delete(`cid:${cid}:read_by_uid`);
-    };
+		let keys = cids.map(cid => `cid:${cid}:read_by_uid`);
+		const hasRead = await db.isMemberOfSets(keys, uid);
+		keys = keys.filter((key, index) => !hasRead[index]);
+		await db.setsAdd(keys, uid);
+	};
 
-    Categories.hasReadCategories = async function (cids, uid) {
-        if (parseInt(uid, 10) <= 0) {
-            return cids.map(() => false);
-        }
+	Categories.markAsUnreadForAll = async function (cid) {
+		if (!Number.parseInt(cid, 10)) {
+			return;
+		}
 
-        const sets = cids.map(cid => `cid:${cid}:read_by_uid`);
-        return await db.isMemberOfSets(sets, uid);
-    };
+		await db.delete(`cid:${cid}:read_by_uid`);
+	};
 
-    Categories.hasReadCategory = async function (cid, uid) {
-        if (parseInt(uid, 10) <= 0) {
-            return false;
-        }
-        return await db.isSetMember(`cid:${cid}:read_by_uid`, uid);
-    };
+	Categories.hasReadCategories = async function (cids, uid) {
+		if (Number.parseInt(uid, 10) <= 0) {
+			return cids.map(() => false);
+		}
+
+		const sets = cids.map(cid => `cid:${cid}:read_by_uid`);
+		return await db.isMemberOfSets(sets, uid);
+	};
+
+	Categories.hasReadCategory = async function (cid, uid) {
+		if (Number.parseInt(uid, 10) <= 0) {
+			return false;
+		}
+
+		return await db.isSetMember(`cid:${cid}:read_by_uid`, uid);
+	};
 };

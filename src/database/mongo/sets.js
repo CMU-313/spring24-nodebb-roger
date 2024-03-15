@@ -1,199 +1,209 @@
 'use strict';
 
 module.exports = function (module) {
-    const _ = require('lodash');
-    const helpers = require('./helpers');
+	const _ = require('lodash');
+	const helpers = require('./helpers');
 
-    module.setAdd = async function (key, value) {
-        if (!Array.isArray(value)) {
-            value = [value];
-        }
-        if (!value.length) {
-            return;
-        }
-        value = value.map(v => helpers.valueToString(v));
+	module.setAdd = async function (key, value) {
+		if (!Array.isArray(value)) {
+			value = [value];
+		}
 
-        await module.client.collection('objects').updateOne({
-            _key: key,
-        }, {
-            $addToSet: {
-                members: {
-                    $each: value,
-                },
-            },
-        }, {
-            upsert: true,
-        });
-    };
+		if (value.length === 0) {
+			return;
+		}
 
-    module.setsAdd = async function (keys, value) {
-        if (!Array.isArray(keys) || !keys.length) {
-            return;
-        }
+		value = value.map(v => helpers.valueToString(v));
 
-        if (!Array.isArray(value)) {
-            value = [value];
-        }
+		await module.client.collection('objects').updateOne({
+			_key: key,
+		}, {
+			$addToSet: {
+				members: {
+					$each: value,
+				},
+			},
+		}, {
+			upsert: true,
+		});
+	};
 
-        value = value.map(v => helpers.valueToString(v));
+	module.setsAdd = async function (keys, value) {
+		if (!Array.isArray(keys) || keys.length === 0) {
+			return;
+		}
 
-        const bulk = module.client.collection('objects').initializeUnorderedBulkOp();
+		if (!Array.isArray(value)) {
+			value = [value];
+		}
 
-        for (let i = 0; i < keys.length; i += 1) {
-            bulk.find({ _key: keys[i] }).upsert().updateOne({
-                $addToSet: {
-                    members: {
-                        $each: value,
-                    },
-                },
-            });
-        }
-        try {
-            await bulk.execute();
-        } catch (err) {
-            if (err && err.message.startsWith('E11000 duplicate key error')) {
-                return await module.setsAdd(keys, value);
-            }
-            throw err;
-        }
-    };
+		value = value.map(v => helpers.valueToString(v));
 
-    module.setRemove = async function (key, value) {
-        if (!Array.isArray(value)) {
-            value = [value];
-        }
+		const bulk = module.client.collection('objects').initializeUnorderedBulkOp();
 
-        value = value.map(v => helpers.valueToString(v));
+		for (const key of keys) {
+			bulk.find({_key: key}).upsert().updateOne({
+				$addToSet: {
+					members: {
+						$each: value,
+					},
+				},
+			});
+		}
 
-        await module.client.collection('objects').updateMany({
-            _key: Array.isArray(key) ? { $in: key } : key,
-        }, {
-            $pullAll: { members: value },
-        });
-    };
+		try {
+			await bulk.execute();
+		} catch (error) {
+			if (error && error.message.startsWith('E11000 duplicate key error')) {
+				return await module.setsAdd(keys, value);
+			}
 
-    module.setsRemove = async function (keys, value) {
-        if (!Array.isArray(keys) || !keys.length) {
-            return;
-        }
-        value = helpers.valueToString(value);
+			throw error;
+		}
+	};
 
-        await module.client.collection('objects').updateMany({
-            _key: { $in: keys },
-        }, {
-            $pull: { members: value },
-        });
-    };
+	module.setRemove = async function (key, value) {
+		if (!Array.isArray(value)) {
+			value = [value];
+		}
 
-    module.isSetMember = async function (key, value) {
-        if (!key) {
-            return false;
-        }
-        value = helpers.valueToString(value);
+		value = value.map(v => helpers.valueToString(v));
 
-        const item = await module.client.collection('objects').findOne({
-            _key: key, members: value,
-        }, {
-            projection: { _id: 0, members: 0 },
-        });
-        return item !== null && item !== undefined;
-    };
+		await module.client.collection('objects').updateMany({
+			_key: Array.isArray(key) ? {$in: key} : key,
+		}, {
+			$pullAll: {members: value},
+		});
+	};
 
-    module.isSetMembers = async function (key, values) {
-        if (!key || !Array.isArray(values) || !values.length) {
-            return [];
-        }
-        values = values.map(v => helpers.valueToString(v));
+	module.setsRemove = async function (keys, value) {
+		if (!Array.isArray(keys) || keys.length === 0) {
+			return;
+		}
 
-        const result = await module.client.collection('objects').findOne({
-            _key: key,
-        }, {
-            projection: { _id: 0, _key: 0 },
-        });
-        const membersSet = new Set(result && Array.isArray(result.members) ? result.members : []);
-        return values.map(v => membersSet.has(v));
-    };
+		value = helpers.valueToString(value);
 
-    module.isMemberOfSets = async function (sets, value) {
-        if (!Array.isArray(sets) || !sets.length) {
-            return [];
-        }
-        value = helpers.valueToString(value);
+		await module.client.collection('objects').updateMany({
+			_key: {$in: keys},
+		}, {
+			$pull: {members: value},
+		});
+	};
 
-        const result = await module.client.collection('objects').find({
-            _key: { $in: sets }, members: value,
-        }, {
-            projection: { _id: 0, members: 0 },
-        }).toArray();
+	module.isSetMember = async function (key, value) {
+		if (!key) {
+			return false;
+		}
 
-        const map = {};
-        result.forEach((item) => {
-            map[item._key] = true;
-        });
+		value = helpers.valueToString(value);
 
-        return sets.map(set => !!map[set]);
-    };
+		const item = await module.client.collection('objects').findOne({
+			_key: key, members: value,
+		}, {
+			projection: {_id: 0, members: 0},
+		});
+		return item !== null && item !== undefined;
+	};
 
-    module.getSetMembers = async function (key) {
-        if (!key) {
-            return [];
-        }
+	module.isSetMembers = async function (key, values) {
+		if (!key || !Array.isArray(values) || values.length === 0) {
+			return [];
+		}
 
-        const data = await module.client.collection('objects').findOne({
-            _key: key,
-        }, {
-            projection: { _id: 0, _key: 0 },
-        });
-        return data ? data.members : [];
-    };
+		values = values.map(v => helpers.valueToString(v));
 
-    module.getSetsMembers = async function (keys) {
-        if (!Array.isArray(keys) || !keys.length) {
-            return [];
-        }
-        const data = await module.client.collection('objects').find({
-            _key: { $in: keys },
-        }, {
-            projection: { _id: 0 },
-        }).toArray();
+		const result = await module.client.collection('objects').findOne({
+			_key: key,
+		}, {
+			projection: {_id: 0, _key: 0},
+		});
+		const membersSet = new Set(result && Array.isArray(result.members) ? result.members : []);
+		return values.map(v => membersSet.has(v));
+	};
 
-        const sets = {};
-        data.forEach((set) => {
-            sets[set._key] = set.members || [];
-        });
+	module.isMemberOfSets = async function (sets, value) {
+		if (!Array.isArray(sets) || sets.length === 0) {
+			return [];
+		}
 
-        return keys.map(k => sets[k] || []);
-    };
+		value = helpers.valueToString(value);
 
-    module.setCount = async function (key) {
-        if (!key) {
-            return 0;
-        }
-        const data = await module.client.collection('objects').aggregate([
-            { $match: { _key: key } },
-            { $project: { _id: 0, count: { $size: '$members' } } },
-        ]).toArray();
-        return Array.isArray(data) && data.length ? data[0].count : 0;
-    };
+		const result = await module.client.collection('objects').find({
+			_key: {$in: sets}, members: value,
+		}, {
+			projection: {_id: 0, members: 0},
+		}).toArray();
 
-    module.setsCount = async function (keys) {
-        const data = await module.client.collection('objects').aggregate([
-            { $match: { _key: { $in: keys } } },
-            { $project: { _id: 0, _key: 1, count: { $size: '$members' } } },
-        ]).toArray();
-        const map = _.keyBy(data, '_key');
-        return keys.map(key => (map.hasOwnProperty(key) ? map[key].count : 0));
-    };
+		const map = {};
+		for (const item of result) {
+			map[item._key] = true;
+		}
 
-    module.setRemoveRandom = async function (key) {
-        const data = await module.client.collection('objects').findOne({ _key: key });
-        if (!data) {
-            return;
-        }
+		return sets.map(set => Boolean(map[set]));
+	};
 
-        const randomIndex = Math.floor(Math.random() * data.members.length);
-        const value = data.members[randomIndex];
-        await module.setRemove(data._key, value);
-        return value;
-    };
+	module.getSetMembers = async function (key) {
+		if (!key) {
+			return [];
+		}
+
+		const data = await module.client.collection('objects').findOne({
+			_key: key,
+		}, {
+			projection: {_id: 0, _key: 0},
+		});
+		return data ? data.members : [];
+	};
+
+	module.getSetsMembers = async function (keys) {
+		if (!Array.isArray(keys) || keys.length === 0) {
+			return [];
+		}
+
+		const data = await module.client.collection('objects').find({
+			_key: {$in: keys},
+		}, {
+			projection: {_id: 0},
+		}).toArray();
+
+		const sets = {};
+		for (const set of data) {
+			sets[set._key] = set.members || [];
+		}
+
+		return keys.map(k => sets[k] || []);
+	};
+
+	module.setCount = async function (key) {
+		if (!key) {
+			return 0;
+		}
+
+		const data = await module.client.collection('objects').aggregate([
+			{$match: {_key: key}},
+			{$project: {_id: 0, count: {$size: '$members'}}},
+		]).toArray();
+		return Array.isArray(data) && data.length > 0 ? data[0].count : 0;
+	};
+
+	module.setsCount = async function (keys) {
+		const data = await module.client.collection('objects').aggregate([
+			{$match: {_key: {$in: keys}}},
+			{$project: {_id: 0, _key: 1, count: {$size: '$members'}}},
+		]).toArray();
+		const map = _.keyBy(data, '_key');
+		return keys.map(key => (map.hasOwnProperty(key) ? map[key].count : 0));
+	};
+
+	module.setRemoveRandom = async function (key) {
+		const data = await module.client.collection('objects').findOne({_key: key});
+		if (!data) {
+			return;
+		}
+
+		const randomIndex = Math.floor(Math.random() * data.members.length);
+		const value = data.members[randomIndex];
+		await module.setRemove(data._key, value);
+		return value;
+	};
 };

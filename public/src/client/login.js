@@ -1,111 +1,115 @@
 'use strict';
 
+define('forum/login', ['hooks', 'translator', 'jquery-form'], (hooks, translator) => {
+	const Login = {
+		_capsState: false,
+	};
 
-define('forum/login', ['hooks', 'translator', 'jquery-form'], function (hooks, translator) {
-    const Login = {
-        _capsState: false,
-    };
+	Login.init = function () {
+		const errorElement = $('#login-error-notify');
+		const submitElement = $('#login');
+		const formElement = $('#login-form');
 
-    Login.init = function () {
-        const errorEl = $('#login-error-notify');
-        const submitEl = $('#login');
-        const formEl = $('#login-form');
+		submitElement.on('click', e => {
+			e.preventDefault();
 
-        submitEl.on('click', function (e) {
-            e.preventDefault();
+			if (!$('#username').val() || !$('#password').val()) {
+				errorElement.find('p').translateText('[[error:invalid-username-or-password]]');
+				errorElement.show();
+			} else {
+				errorElement.hide();
 
-            if (!$('#username').val() || !$('#password').val()) {
-                errorEl.find('p').translateText('[[error:invalid-username-or-password]]');
-                errorEl.show();
-            } else {
-                errorEl.hide();
+				if (submitElement.hasClass('disabled')) {
+					return;
+				}
 
-                if (submitEl.hasClass('disabled')) {
-                    return;
-                }
+				submitElement.addClass('disabled');
 
-                submitEl.addClass('disabled');
+				hooks.fire('action:app.login');
+				formElement.ajaxSubmit({
+					headers: {
+						'x-csrf-token': config.csrf_token,
+					},
+					beforeSend() {
+						app.flags._login = true;
+					},
+					success(data) {
+						hooks.fire('action:app.loggedIn', data);
+						const pathname = utils.urlToLocation(data.next).pathname;
+						const parameters = utils.params({url: data.next});
+						parameters.loggedin = true;
+						delete parameters.register; // Clear register message incase it exists
+						const qs = decodeURIComponent($.param(parameters));
 
-                hooks.fire('action:app.login');
-                formEl.ajaxSubmit({
-                    headers: {
-                        'x-csrf-token': config.csrf_token,
-                    },
-                    beforeSend: function () {
-                        app.flags._login = true;
-                    },
-                    success: function (data) {
-                        hooks.fire('action:app.loggedIn', data);
-                        const pathname = utils.urlToLocation(data.next).pathname;
-                        const params = utils.params({ url: data.next });
-                        params.loggedin = true;
-                        delete params.register; // clear register message incase it exists
-                        const qs = decodeURIComponent($.param(params));
+						window.location.href = pathname + '?' + qs;
+					},
+					error(data) {
+						let message = data.responseText;
+						const errorInfo = data.responseJSON;
+						if (data.status === 403 && data.responseText === 'Forbidden') {
+							window.location.href = config.relative_path + '/login?error=csrf-invalid';
+						} else if (errorInfo && errorInfo.hasOwnProperty('banned_until')) {
+							message = errorInfo.banned_until
+								? translator.compile('error:user-banned-reason-until', (new Date(errorInfo.banned_until).toLocaleString()), errorInfo.reason)
+								: '[[error:user-banned-reason, ' + errorInfo.reason + ']]';
+						}
 
-                        window.location.href = pathname + '?' + qs;
-                    },
-                    error: function (data) {
-                        let message = data.responseText;
-                        const errInfo = data.responseJSON;
-                        if (data.status === 403 && data.responseText === 'Forbidden') {
-                            window.location.href = config.relative_path + '/login?error=csrf-invalid';
-                        } else if (errInfo && errInfo.hasOwnProperty('banned_until')) {
-                            message = errInfo.banned_until ?
-                                translator.compile('error:user-banned-reason-until', (new Date(errInfo.banned_until).toLocaleString()), errInfo.reason) :
-                                '[[error:user-banned-reason, ' + errInfo.reason + ']]';
-                        }
-                        errorEl.find('p').translateText(message);
-                        errorEl.show();
-                        submitEl.removeClass('disabled');
+						errorElement.find('p').translateText(message);
+						errorElement.show();
+						submitElement.removeClass('disabled');
 
-                        // Select the entire password if that field has focus
-                        if ($('#password:focus').length) {
-                            $('#password').select();
-                        }
-                    },
-                });
-            }
-        });
+						// Select the entire password if that field has focus
+						if ($('#password:focus').length > 0) {
+							$('#password').select();
+						}
+					},
+				});
+			}
+		});
 
-        // Guard against caps lock
-        Login.capsLockCheck(document.querySelector('#password'), document.querySelector('#caps-lock-warning'));
+		// Guard against caps lock
+		Login.capsLockCheck(document.querySelector('#password'), document.querySelector('#caps-lock-warning'));
 
-        $('#login-error-notify button').on('click', function (e) {
-            e.preventDefault();
-            errorEl.hide();
-            return false;
-        });
+		$('#login-error-notify button').on('click', e => {
+			e.preventDefault();
+			errorElement.hide();
+			return false;
+		});
 
-        if ($('#content #username').val()) {
-            $('#content #password').val('').focus();
-        } else {
-            $('#content #username').focus();
-        }
-        $('#content #noscript').val('false');
-    };
+		if ($('#content #username').val()) {
+			$('#content #password').val('').focus();
+		} else {
+			$('#content #username').focus();
+		}
 
-    Login.capsLockCheck = (inputEl, warningEl) => {
-        const toggle = (state) => {
-            warningEl.classList[state ? 'remove' : 'add']('hidden');
-            warningEl.parentNode.classList[state ? 'add' : 'remove']('has-warning');
-        };
-        if (!inputEl) {
-            return;
-        }
-        inputEl.addEventListener('keyup', function (e) {
-            if (Login._capsState && e.key === 'CapsLock') {
-                toggle(false);
-                Login._capsState = !Login._capsState;
-                return;
-            }
-            Login._capsState = e.getModifierState && e.getModifierState('CapsLock');
-            toggle(Login._capsState);
-        });
+		$('#content #noscript').val('false');
+	};
 
-        if (Login._capsState) {
-            toggle(true);
-        }
-    };
+	Login.capsLockCheck = (inputElement, warningElement) => {
+		const toggle = state => {
+			warningElement.classList[state ? 'remove' : 'add']('hidden');
+			warningElement.parentNode.classList[state ? 'add' : 'remove']('has-warning');
+		};
 
-    return Login;
+		if (!inputElement) {
+			return;
+		}
+
+		inputElement.addEventListener('keyup', e => {
+			if (Login._capsState && e.key === 'CapsLock') {
+				toggle(false);
+				Login._capsState = !Login._capsState;
+				return;
+			}
+
+			Login._capsState = e.getModifierState && e.getModifierState('CapsLock');
+			toggle(Login._capsState);
+		});
+
+		if (Login._capsState) {
+			toggle(true);
+		}
+	};
+
+	return Login;
 });

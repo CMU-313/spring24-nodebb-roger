@@ -1,14 +1,13 @@
 'use strict';
 
+define('forum/popular', ['topicList'], topicList => {
+	const Popular = {};
 
-define('forum/popular', ['topicList'], function (topicList) {
-    const Popular = {};
+	Popular.init = function () {
+		app.enterRoom('popular_topics');
 
-    Popular.init = function () {
-        app.enterRoom('popular_topics');
+		topicList.init('popular');
+	};
 
-        topicList.init('popular');
-    };
-
-    return Popular;
+	return Popular;
 });

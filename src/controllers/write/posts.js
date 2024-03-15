@@ -1,165 +1,163 @@
 'use strict';
 
 // For JS requirement
-const assert = require('assert');
-
+const assert = require('node:assert');
 const posts = require('../../posts');
 const privileges = require('../../privileges');
-
 const api = require('../../api');
 const helpers = require('../helpers');
 const apiHelpers = require('../../api/helpers');
 
 const Posts = module.exports;
 
-Posts.get = async (req, res) => {
-    helpers.formatApiResponse(200, res, await api.posts.get(req, { pid: req.params.pid }));
+Posts.get = async (request, res) => {
+	helpers.formatApiResponse(200, res, await api.posts.get(request, {pid: request.params.pid}));
 };
 
-Posts.edit = async (req, res) => {
-    const editResult = await api.posts.edit(req, {
-        ...req.body,
-        pid: req.params.pid,
-        uid: req.uid,
-        req: apiHelpers.buildReqObject(req),
-    });
+Posts.edit = async (request, res) => {
+	const editResult = await api.posts.edit(request, {
+		...request.body,
+		pid: request.params.pid,
+		uid: request.uid,
+		req: apiHelpers.buildReqObject(request),
+	});
 
-    helpers.formatApiResponse(200, res, editResult);
+	helpers.formatApiResponse(200, res, editResult);
 };
 
-Posts.purge = async (req, res) => {
-    await api.posts.purge(req, { pid: req.params.pid });
-    helpers.formatApiResponse(200, res);
+Posts.purge = async (request, res) => {
+	await api.posts.purge(request, {pid: request.params.pid});
+	helpers.formatApiResponse(200, res);
 };
 
-Posts.restore = async (req, res) => {
-    await api.posts.restore(req, { pid: req.params.pid });
-    helpers.formatApiResponse(200, res);
+Posts.restore = async (request, res) => {
+	await api.posts.restore(request, {pid: request.params.pid});
+	helpers.formatApiResponse(200, res);
 };
 
-Posts.delete = async (req, res) => {
-    await api.posts.delete(req, { pid: req.params.pid });
-    helpers.formatApiResponse(200, res);
+Posts.delete = async (request, res) => {
+	await api.posts.delete(request, {pid: request.params.pid});
+	helpers.formatApiResponse(200, res);
 };
 
-Posts.move = async (req, res) => {
-    await api.posts.move(req, {
-        pid: req.params.pid,
-        tid: req.body.tid,
-    });
-    helpers.formatApiResponse(200, res);
+Posts.move = async (request, res) => {
+	await api.posts.move(request, {
+		pid: request.params.pid,
+		tid: request.body.tid,
+	});
+	helpers.formatApiResponse(200, res);
 };
 
-async function mock(req) {
-    const tid = await posts.getPostField(req.params.pid, 'tid');
-    return { pid: req.params.pid, room_id: `topic_${tid}` };
+async function mock(request) {
+	const tid = await posts.getPostField(request.params.pid, 'tid');
+	return {pid: request.params.pid, room_id: `topic_${tid}`};
 }
 
-Posts.vote = async (req, res) => {
-    const data = await mock(req);
-    if (req.body.delta > 0) {
-        await api.posts.upvote(req, data);
-    } else if (req.body.delta < 0) {
-        await api.posts.downvote(req, data);
-    } else {
-        await api.posts.unvote(req, data);
-    }
+Posts.vote = async (request, res) => {
+	const data = await mock(request);
+	if (request.body.delta > 0) {
+		await api.posts.upvote(request, data);
+	} else if (request.body.delta < 0) {
+		await api.posts.downvote(request, data);
+	} else {
+		await api.posts.unvote(request, data);
+	}
 
-    helpers.formatApiResponse(200, res);
+	helpers.formatApiResponse(200, res);
 };
 
-Posts.unvote = async (req, res) => {
-    const data = await mock(req);
-    await api.posts.unvote(req, data);
-    helpers.formatApiResponse(200, res);
+Posts.unvote = async (request, res) => {
+	const data = await mock(request);
+	await api.posts.unvote(request, data);
+	helpers.formatApiResponse(200, res);
 };
 
-Posts.bookmark = async (req, res) => {
-    const data = await mock(req);
-    await api.posts.bookmark(req, data);
-    helpers.formatApiResponse(200, res);
+Posts.bookmark = async (request, res) => {
+	const data = await mock(request);
+	await api.posts.bookmark(request, data);
+	helpers.formatApiResponse(200, res);
 };
 
-Posts.unbookmark = async (req, res) => {
-    const data = await mock(req);
-    await api.posts.unbookmark(req, data);
-    helpers.formatApiResponse(200, res);
+Posts.unbookmark = async (request, res) => {
+	const data = await mock(request);
+	await api.posts.unbookmark(request, data);
+	helpers.formatApiResponse(200, res);
 };
 
-Posts.pin = async (req, res) => {
-    /*
+Posts.pin = async (request, res) => {
+	/*
         Parameters: a request object with information about the post to pin,
         and a response object to write the response to
 
         Returns: nothing, but writes into res.
     */
 
-    const data = await mock(req);
+	const data = await mock(request);
 
-    /*
+	/*
         Test that request has the needed fields
     */
-    assert(data.hasOwnProperty('pid'), 'Pin request has no pid field');
-    assert(!(isNaN(data.pid)));
+	assert(data.hasOwnProperty('pid'), 'Pin request has no pid field');
+	assert(!(isNaN(data.pid)));
 
-    await api.posts.pin(req, data);
-    helpers.formatApiResponse(200, res);
+	await api.posts.pin(request, data);
+	helpers.formatApiResponse(200, res);
 };
 
-Posts.unpin = async (req, res) => {
-    /*
+Posts.unpin = async (request, res) => {
+	/*
         Parameters: a request object with information about the post to unpin,
         and a response object to write the response to
 
         Returns: nothing, but writes into res.
     */
 
-    const data = await mock(req);
+	const data = await mock(request);
 
-    /*
+	/*
         Test that request has the needed fields
     */
-    assert(data.hasOwnProperty('pid'), 'Unpin request has no pid field');
-    assert(!(isNaN(data.pid)));
+	assert(data.hasOwnProperty('pid'), 'Unpin request has no pid field');
+	assert(!(isNaN(data.pid)));
 
-    await api.posts.unpin(req, data);
-    helpers.formatApiResponse(200, res);
+	await api.posts.unpin(request, data);
+	helpers.formatApiResponse(200, res);
 };
 
-Posts.resolve = async (req, res) => {
-    const data = await mock(req);
-    await api.posts.resolve(req, data);
-    helpers.formatApiResponse(200, res);
+Posts.resolve = async (request, res) => {
+	const data = await mock(request);
+	await api.posts.resolve(request, data);
+	helpers.formatApiResponse(200, res);
 };
 
-Posts.getDiffs = async (req, res) => {
-    helpers.formatApiResponse(200, res, await api.posts.getDiffs(req, { ...req.params }));
+Posts.getDiffs = async (request, res) => {
+	helpers.formatApiResponse(200, res, await api.posts.getDiffs(request, {...request.params}));
 };
 
-Posts.loadDiff = async (req, res) => {
-    helpers.formatApiResponse(200, res, await api.posts.loadDiff(req, { ...req.params }));
+Posts.loadDiff = async (request, res) => {
+	helpers.formatApiResponse(200, res, await api.posts.loadDiff(request, {...request.params}));
 };
 
-Posts.restoreDiff = async (req, res) => {
-    helpers.formatApiResponse(200, res, await api.posts.restoreDiff(req, { ...req.params }));
+Posts.restoreDiff = async (request, res) => {
+	helpers.formatApiResponse(200, res, await api.posts.restoreDiff(request, {...request.params}));
 };
 
-Posts.deleteDiff = async (req, res) => {
-    if (!parseInt(req.params.pid, 10)) {
-        throw new Error('[[error:invalid-data]]');
-    }
+Posts.deleteDiff = async (request, res) => {
+	if (!Number.parseInt(request.params.pid, 10)) {
+		throw new Error('[[error:invalid-data]]');
+	}
 
-    const cid = await posts.getCidByPid(req.params.pid);
-    const [isAdmin, isModerator] = await Promise.all([
-        privileges.users.isAdministrator(req.uid),
-        privileges.users.isModerator(req.uid, cid),
-    ]);
+	const cid = await posts.getCidByPid(request.params.pid);
+	const [isAdmin, isModerator] = await Promise.all([
+		privileges.users.isAdministrator(request.uid),
+		privileges.users.isModerator(request.uid, cid),
+	]);
 
-    if (!(isAdmin || isModerator)) {
-        return helpers.formatApiResponse(403, res, new Error('[[error:no-privileges]]'));
-    }
+	if (!(isAdmin || isModerator)) {
+		return helpers.formatApiResponse(403, res, new Error('[[error:no-privileges]]'));
+	}
 
-    await posts.diffs.delete(req.params.pid, req.params.timestamp, req.uid);
+	await posts.diffs.delete(request.params.pid, request.params.timestamp, request.uid);
 
-    helpers.formatApiResponse(200, res, await api.posts.getDiffs(req, { ...req.params }));
+	helpers.formatApiResponse(200, res, await api.posts.getDiffs(request, {...request.params}));
 };

@@ -1,344 +1,350 @@
 'use strict';
 
 const _ = require('lodash');
-
 const db = require('../database');
-const topics = require('.');
 const categories = require('../categories');
 const user = require('../user');
 const plugins = require('../plugins');
 const privileges = require('../privileges');
 const utils = require('../utils');
-
+const topics = require('.');
 
 module.exports = function (Topics) {
-    const topicTools = {};
-    Topics.tools = topicTools;
+	const topicTools = {};
+	Topics.tools = topicTools;
 
-    topicTools.delete = async function (tid, uid) {
-        return await toggleDelete(tid, uid, true);
-    };
+	topicTools.delete = async function (tid, uid) {
+		return await toggleDelete(tid, uid, true);
+	};
 
-    topicTools.restore = async function (tid, uid) {
-        return await toggleDelete(tid, uid, false);
-    };
+	topicTools.restore = async function (tid, uid) {
+		return await toggleDelete(tid, uid, false);
+	};
 
-    async function toggleDelete(tid, uid, isDelete) {
-        const topicData = await Topics.getTopicData(tid);
-        if (!topicData) {
-            throw new Error('[[error:no-topic]]');
-        }
-        // Scheduled topics can only be purged
-        if (topicData.scheduled) {
-            throw new Error('[[error:invalid-data]]');
-        }
-        const canDelete = await privileges.topics.canDelete(tid, uid);
+	async function toggleDelete(tid, uid, isDelete) {
+		const topicData = await Topics.getTopicData(tid);
+		if (!topicData) {
+			throw new Error('[[error:no-topic]]');
+		}
 
-        const hook = isDelete ? 'delete' : 'restore';
-        const data = await plugins.hooks.fire(`filter:topic.${hook}`, { topicData: topicData, uid: uid, isDelete: isDelete, canDelete: canDelete, canRestore: canDelete });
+		// Scheduled topics can only be purged
+		if (topicData.scheduled) {
+			throw new Error('[[error:invalid-data]]');
+		}
 
-        if ((!data.canDelete && data.isDelete) || (!data.canRestore && !data.isDelete)) {
-            throw new Error('[[error:no-privileges]]');
-        }
-        if (data.topicData.deleted && data.isDelete) {
-            throw new Error('[[error:topic-already-deleted]]');
-        } else if (!data.topicData.deleted && !data.isDelete) {
-            throw new Error('[[error:topic-already-restored]]');
-        }
-        if (data.isDelete) {
-            await Topics.delete(data.topicData.tid, data.uid);
-        } else {
-            await Topics.restore(data.topicData.tid);
-        }
-        const events = await Topics.events.log(tid, { type: isDelete ? 'delete' : 'restore', uid });
+		const canDelete = await privileges.topics.canDelete(tid, uid);
 
-        data.topicData.deleted = data.isDelete ? 1 : 0;
+		const hook = isDelete ? 'delete' : 'restore';
+		const data = await plugins.hooks.fire(`filter:topic.${hook}`, {
+			topicData, uid, isDelete, canDelete, canRestore: canDelete,
+		});
 
-        if (data.isDelete) {
-            plugins.hooks.fire('action:topic.delete', { topic: data.topicData, uid: data.uid });
-        } else {
-            plugins.hooks.fire('action:topic.restore', { topic: data.topicData, uid: data.uid });
-        }
-        const userData = await user.getUserFields(data.uid, ['username', 'userslug']);
-        return {
-            tid: data.topicData.tid,
-            cid: data.topicData.cid,
-            isDelete: data.isDelete,
-            uid: data.uid,
-            user: userData,
-            events,
-        };
-    }
+		if ((!data.canDelete && data.isDelete) || (!data.canRestore && !data.isDelete)) {
+			throw new Error('[[error:no-privileges]]');
+		}
 
-    topicTools.private = async function (tid, uid) {
-        return await togglePrivate(tid, uid, true);
-    };
+		if (data.topicData.deleted && data.isDelete) {
+			throw new Error('[[error:topic-already-deleted]]');
+		} else if (!data.topicData.deleted && !data.isDelete) {
+			throw new Error('[[error:topic-already-restored]]');
+		}
 
-    topicTools.public = async function (tid, uid) {
-        return await togglePrivate(tid, uid, false);
-    };
+		await (data.isDelete ? Topics.delete(data.topicData.tid, data.uid) : Topics.restore(data.topicData.tid));
 
-    async function togglePrivate(tid, uid, isPrivate) {
-        const topicData = await Topics.getTopicData(tid);
-        if (!topicData) {
-            throw new Error('[[error:no-topic]]');
-        }
+		const events = await Topics.events.log(tid, {type: isDelete ? 'delete' : 'restore', uid});
 
-        const canPrivate = await privileges.topics.canDelete(tid, uid);
+		data.topicData.deleted = data.isDelete ? 1 : 0;
 
-        const hook = isPrivate ? 'private' : 'public';
-        const data = await plugins.hooks.fire(`filter:topic.${hook}`, { topicData: topicData, uid: uid, isPrivate: isPrivate, canPrivate: canPrivate, canPublic: canPrivate });
+		if (data.isDelete) {
+			plugins.hooks.fire('action:topic.delete', {topic: data.topicData, uid: data.uid});
+		} else {
+			plugins.hooks.fire('action:topic.restore', {topic: data.topicData, uid: data.uid});
+		}
 
-        if ((!data.canPrivate && data.isPrivate) || (!data.canPublic && !data.isPrivate)) {
-            throw new Error('[[error:no-privileges]]');
-        }
+		const userData = await user.getUserFields(data.uid, ['username', 'userslug']);
+		return {
+			tid: data.topicData.tid,
+			cid: data.topicData.cid,
+			isDelete: data.isDelete,
+			uid: data.uid,
+			user: userData,
+			events,
+		};
+	}
 
-        if (data.isPrivate) {
-            await Topics.private(data.topicData.tid, data.uid);
-        } else {
-            await Topics.public(data.topicData.tid);
-        }
-        const events = await Topics.events.log(tid, { type: isPrivate ? 'private' : 'public', uid });
+	topicTools.private = async function (tid, uid) {
+		return await togglePrivate(tid, uid, true);
+	};
 
-        data.topicData.private = data.isPrivate ? 1 : 0;
+	topicTools.public = async function (tid, uid) {
+		return await togglePrivate(tid, uid, false);
+	};
 
-        if (data.isPrivate) {
-            plugins.hooks.fire('action:topic.private', { topic: data.topicData, uid: data.uid });
-        } else {
-            plugins.hooks.fire('action:topic.public', { topic: data.topicData, uid: data.uid });
-        }
-        const userData = await user.getUserFields(data.uid, ['username', 'userslug']);
+	async function togglePrivate(tid, uid, isPrivate) {
+		const topicData = await Topics.getTopicData(tid);
+		if (!topicData) {
+			throw new Error('[[error:no-topic]]');
+		}
 
-        return {
-            tid: data.topicData.tid,
-            cid: data.topicData.cid,
-            isPrivate: data.isPrivate,
-            uid: data.uid,
-            user: userData,
-            events,
-        };
-    }
+		const canPrivate = await privileges.topics.canDelete(tid, uid);
 
-    topicTools.purge = async function (tid, uid) {
-        const topicData = await Topics.getTopicData(tid);
-        if (!topicData) {
-            throw new Error('[[error:no-topic]]');
-        }
-        const canPurge = await privileges.topics.canPurge(tid, uid);
-        if (!canPurge) {
-            throw new Error('[[error:no-privileges]]');
-        }
+		const hook = isPrivate ? 'private' : 'public';
+		const data = await plugins.hooks.fire(`filter:topic.${hook}`, {
+			topicData, uid, isPrivate, canPrivate, canPublic: canPrivate,
+		});
 
-        await Topics.purgePostsAndTopic(tid, uid);
-        return { tid: tid, cid: topicData.cid, uid: uid };
-    };
+		if ((!data.canPrivate && data.isPrivate) || (!data.canPublic && !data.isPrivate)) {
+			throw new Error('[[error:no-privileges]]');
+		}
 
-    topicTools.lock = async function (tid, uid) {
-        return await toggleLock(tid, uid, true);
-    };
+		await (data.isPrivate ? Topics.private(data.topicData.tid, data.uid) : Topics.public(data.topicData.tid));
 
-    topicTools.unlock = async function (tid, uid) {
-        return await toggleLock(tid, uid, false);
-    };
+		const events = await Topics.events.log(tid, {type: isPrivate ? 'private' : 'public', uid});
 
-    async function toggleLock(tid, uid, lock) {
-        const topicData = await Topics.getTopicFields(tid, ['tid', 'uid', 'cid']);
-        if (!topicData || !topicData.cid) {
-            throw new Error('[[error:no-topic]]');
-        }
-        const isAdminOrMod = await privileges.categories.isAdminOrMod(topicData.cid, uid);
-        if (!isAdminOrMod) {
-            throw new Error('[[error:no-privileges]]');
-        }
-        await Topics.setTopicField(tid, 'locked', lock ? 1 : 0);
-        topicData.events = await Topics.events.log(tid, { type: lock ? 'lock' : 'unlock', uid });
-        topicData.isLocked = lock; // deprecate in v2.0
-        topicData.locked = lock;
+		data.topicData.private = data.isPrivate ? 1 : 0;
 
-        plugins.hooks.fire('action:topic.lock', { topic: _.clone(topicData), uid: uid });
-        return topicData;
-    }
+		if (data.isPrivate) {
+			plugins.hooks.fire('action:topic.private', {topic: data.topicData, uid: data.uid});
+		} else {
+			plugins.hooks.fire('action:topic.public', {topic: data.topicData, uid: data.uid});
+		}
 
-    topicTools.pin = async function (tid, uid) {
-        return await togglePin(tid, uid, true);
-    };
+		const userData = await user.getUserFields(data.uid, ['username', 'userslug']);
 
-    topicTools.unpin = async function (tid, uid) {
-        return await togglePin(tid, uid, false);
-    };
+		return {
+			tid: data.topicData.tid,
+			cid: data.topicData.cid,
+			isPrivate: data.isPrivate,
+			uid: data.uid,
+			user: userData,
+			events,
+		};
+	}
 
-    topicTools.setPinExpiry = async (tid, expiry, uid) => {
-        if (isNaN(parseInt(expiry, 10)) || expiry <= Date.now()) {
-            throw new Error('[[error:invalid-data]]');
-        }
+	topicTools.purge = async function (tid, uid) {
+		const topicData = await Topics.getTopicData(tid);
+		if (!topicData) {
+			throw new Error('[[error:no-topic]]');
+		}
 
-        const topicData = await Topics.getTopicFields(tid, ['tid', 'uid', 'cid']);
-        const isAdminOrMod = await privileges.categories.isAdminOrMod(topicData.cid, uid);
-        if (!isAdminOrMod) {
-            throw new Error('[[error:no-privileges]]');
-        }
+		const canPurge = await privileges.topics.canPurge(tid, uid);
+		if (!canPurge) {
+			throw new Error('[[error:no-privileges]]');
+		}
 
-        await Topics.setTopicField(tid, 'pinExpiry', expiry);
-        plugins.hooks.fire('action:topic.setPinExpiry', { topic: _.clone(topicData), uid: uid });
-    };
+		await Topics.purgePostsAndTopic(tid, uid);
+		return {tid, cid: topicData.cid, uid};
+	};
 
-    topicTools.checkPinExpiry = async (tids) => {
-        const expiry = (await topics.getTopicsFields(tids, ['pinExpiry'])).map(obj => obj.pinExpiry);
-        const now = Date.now();
+	topicTools.lock = async function (tid, uid) {
+		return await toggleLock(tid, uid, true);
+	};
 
-        tids = await Promise.all(tids.map(async (tid, idx) => {
-            if (expiry[idx] && parseInt(expiry[idx], 10) <= now) {
-                await togglePin(tid, 'system', false);
-                return null;
-            }
+	topicTools.unlock = async function (tid, uid) {
+		return await toggleLock(tid, uid, false);
+	};
 
-            return tid;
-        }));
+	async function toggleLock(tid, uid, lock) {
+		const topicData = await Topics.getTopicFields(tid, ['tid', 'uid', 'cid']);
+		if (!topicData || !topicData.cid) {
+			throw new Error('[[error:no-topic]]');
+		}
 
-        return tids.filter(Boolean);
-    };
+		const isAdminOrModule = await privileges.categories.isAdminOrMod(topicData.cid, uid);
+		if (!isAdminOrModule) {
+			throw new Error('[[error:no-privileges]]');
+		}
 
-    async function togglePin(tid, uid, pin) {
-        const topicData = await Topics.getTopicData(tid);
-        if (!topicData) {
-            throw new Error('[[error:no-topic]]');
-        }
+		await Topics.setTopicField(tid, 'locked', lock ? 1 : 0);
+		topicData.events = await Topics.events.log(tid, {type: lock ? 'lock' : 'unlock', uid});
+		topicData.isLocked = lock; // Deprecate in v2.0
+		topicData.locked = lock;
 
-        if (topicData.scheduled) {
-            throw new Error('[[error:cant-pin-scheduled]]');
-        }
+		plugins.hooks.fire('action:topic.lock', {topic: _.clone(topicData), uid});
+		return topicData;
+	}
 
-        if (uid !== 'system' && !await privileges.topics.isAdminOrMod(tid, uid)) {
-            throw new Error('[[error:no-privileges]]');
-        }
+	topicTools.pin = async function (tid, uid) {
+		return await togglePin(tid, uid, true);
+	};
 
-        const promises = [
-            Topics.setTopicField(tid, 'pinned', pin ? 1 : 0),
-            Topics.events.log(tid, { type: pin ? 'pin' : 'unpin', uid }),
-        ];
-        if (pin) {
-            promises.push(db.sortedSetAdd(`cid:${topicData.cid}:tids:pinned`, Date.now(), tid));
-            promises.push(db.sortedSetsRemove([
-                `cid:${topicData.cid}:tids`,
-                `cid:${topicData.cid}:tids:posts`,
-                `cid:${topicData.cid}:tids:votes`,
-                `cid:${topicData.cid}:tids:views`,
-            ], tid));
-        } else {
-            promises.push(db.sortedSetRemove(`cid:${topicData.cid}:tids:pinned`, tid));
-            promises.push(Topics.deleteTopicField(tid, 'pinExpiry'));
-            promises.push(db.sortedSetAddBulk([
-                [`cid:${topicData.cid}:tids`, topicData.lastposttime, tid],
-                [`cid:${topicData.cid}:tids:posts`, topicData.postcount, tid],
-                [`cid:${topicData.cid}:tids:votes`, parseInt(topicData.votes, 10) || 0, tid],
-                [`cid:${topicData.cid}:tids:views`, topicData.viewcount, tid],
-            ]));
-            topicData.pinExpiry = undefined;
-            topicData.pinExpiryISO = undefined;
-        }
+	topicTools.unpin = async function (tid, uid) {
+		return await togglePin(tid, uid, false);
+	};
 
-        const results = await Promise.all(promises);
+	topicTools.setPinExpiry = async (tid, expiry, uid) => {
+		if (isNaN(Number.parseInt(expiry, 10)) || expiry <= Date.now()) {
+			throw new Error('[[error:invalid-data]]');
+		}
 
-        topicData.isPinned = pin; // deprecate in v2.0
-        topicData.pinned = pin;
-        topicData.events = results[1];
+		const topicData = await Topics.getTopicFields(tid, ['tid', 'uid', 'cid']);
+		const isAdminOrModule = await privileges.categories.isAdminOrMod(topicData.cid, uid);
+		if (!isAdminOrModule) {
+			throw new Error('[[error:no-privileges]]');
+		}
 
-        plugins.hooks.fire('action:topic.pin', { topic: _.clone(topicData), uid });
+		await Topics.setTopicField(tid, 'pinExpiry', expiry);
+		plugins.hooks.fire('action:topic.setPinExpiry', {topic: _.clone(topicData), uid});
+	};
 
-        return topicData;
-    }
+	topicTools.checkPinExpiry = async tids => {
+		const expiry = (await topics.getTopicsFields(tids, ['pinExpiry'])).map(object => object.pinExpiry);
+		const now = Date.now();
 
-    topicTools.orderPinnedTopics = async function (uid, data) {
-        const { tid, order } = data;
-        const cid = await Topics.getTopicField(tid, 'cid');
+		tids = await Promise.all(tids.map(async (tid, index) => {
+			if (expiry[index] && Number.parseInt(expiry[index], 10) <= now) {
+				await togglePin(tid, 'system', false);
+				return null;
+			}
 
-        if (!cid || !tid || !utils.isNumber(order) || order < 0) {
-            throw new Error('[[error:invalid-data]]');
-        }
+			return tid;
+		}));
 
-        const isAdminOrMod = await privileges.categories.isAdminOrMod(cid, uid);
-        if (!isAdminOrMod) {
-            throw new Error('[[error:no-privileges]]');
-        }
+		return tids.filter(Boolean);
+	};
 
-        const pinnedTids = await db.getSortedSetRange(`cid:${cid}:tids:pinned`, 0, -1);
-        const currentIndex = pinnedTids.indexOf(String(tid));
-        if (currentIndex === -1) {
-            return;
-        }
-        const newOrder = pinnedTids.length - order - 1;
-        // moves tid to index order in the array
-        if (pinnedTids.length > 1) {
-            pinnedTids.splice(Math.max(0, newOrder), 0, pinnedTids.splice(currentIndex, 1)[0]);
-        }
+	async function togglePin(tid, uid, pin) {
+		const topicData = await Topics.getTopicData(tid);
+		if (!topicData) {
+			throw new Error('[[error:no-topic]]');
+		}
 
-        await db.sortedSetAdd(
-            `cid:${cid}:tids:pinned`,
-            pinnedTids.map((tid, index) => index),
-            pinnedTids
-        );
-    };
+		if (topicData.scheduled) {
+			throw new Error('[[error:cant-pin-scheduled]]');
+		}
 
-    topicTools.move = async function (tid, data) {
-        const cid = parseInt(data.cid, 10);
-        const topicData = await Topics.getTopicData(tid);
-        if (!topicData) {
-            throw new Error('[[error:no-topic]]');
-        }
-        if (cid === topicData.cid) {
-            throw new Error('[[error:cant-move-topic-to-same-category]]');
-        }
-        const tags = await Topics.getTopicTags(tid);
-        await db.sortedSetsRemove([
-            `cid:${topicData.cid}:tids`,
-            `cid:${topicData.cid}:tids:pinned`,
-            `cid:${topicData.cid}:tids:posts`,
-            `cid:${topicData.cid}:tids:votes`,
-            `cid:${topicData.cid}:tids:views`,
-            `cid:${topicData.cid}:tids:lastposttime`,
-            `cid:${topicData.cid}:recent_tids`,
-            `cid:${topicData.cid}:uid:${topicData.uid}:tids`,
-            ...tags.map(tag => `cid:${topicData.cid}:tag:${tag}:topics`),
-        ], tid);
+		if (uid !== 'system' && !await privileges.topics.isAdminOrMod(tid, uid)) {
+			throw new Error('[[error:no-privileges]]');
+		}
 
-        topicData.postcount = topicData.postcount || 0;
-        const votes = topicData.upvotes - topicData.downvotes;
+		const promises = [
+			Topics.setTopicField(tid, 'pinned', pin ? 1 : 0),
+			Topics.events.log(tid, {type: pin ? 'pin' : 'unpin', uid}),
+		];
+		if (pin) {
+			promises.push(db.sortedSetAdd(`cid:${topicData.cid}:tids:pinned`, Date.now(), tid));
+			promises.push(db.sortedSetsRemove([
+				`cid:${topicData.cid}:tids`,
+				`cid:${topicData.cid}:tids:posts`,
+				`cid:${topicData.cid}:tids:votes`,
+				`cid:${topicData.cid}:tids:views`,
+			], tid));
+		} else {
+			promises.push(db.sortedSetRemove(`cid:${topicData.cid}:tids:pinned`, tid));
+			promises.push(Topics.deleteTopicField(tid, 'pinExpiry'));
+			promises.push(db.sortedSetAddBulk([
+				[`cid:${topicData.cid}:tids`, topicData.lastposttime, tid],
+				[`cid:${topicData.cid}:tids:posts`, topicData.postcount, tid],
+				[`cid:${topicData.cid}:tids:votes`, Number.parseInt(topicData.votes, 10) || 0, tid],
+				[`cid:${topicData.cid}:tids:views`, topicData.viewcount, tid],
+			]));
+			topicData.pinExpiry = undefined;
+			topicData.pinExpiryISO = undefined;
+		}
 
-        const bulk = [
-            [`cid:${cid}:tids:lastposttime`, topicData.lastposttime, tid],
-            [`cid:${cid}:uid:${topicData.uid}:tids`, topicData.timestamp, tid],
-            ...tags.map(tag => [`cid:${cid}:tag:${tag}:topics`, topicData.timestamp, tid]),
-        ];
-        if (topicData.pinned) {
-            bulk.push([`cid:${cid}:tids:pinned`, Date.now(), tid]);
-        } else {
-            bulk.push([`cid:${cid}:tids`, topicData.lastposttime, tid]);
-            bulk.push([`cid:${cid}:tids:posts`, topicData.postcount, tid]);
-            bulk.push([`cid:${cid}:tids:votes`, votes, tid]);
-            bulk.push([`cid:${cid}:tids:views`, topicData.viewcount, tid]);
-        }
-        await db.sortedSetAddBulk(bulk);
+		const results = await Promise.all(promises);
 
-        const oldCid = topicData.cid;
-        await categories.moveRecentReplies(tid, oldCid, cid);
+		topicData.isPinned = pin; // Deprecate in v2.0
+		topicData.pinned = pin;
+		topicData.events = results[1];
 
-        await Promise.all([
-            categories.incrementCategoryFieldBy(oldCid, 'topic_count', -1),
-            categories.incrementCategoryFieldBy(cid, 'topic_count', 1),
-            categories.updateRecentTidForCid(cid),
-            categories.updateRecentTidForCid(oldCid),
-            Topics.setTopicFields(tid, {
-                cid: cid,
-                oldCid: oldCid,
-            }),
-            Topics.updateCategoryTagsCount([oldCid, cid], tags),
-            Topics.events.log(tid, { type: 'move', uid: data.uid, fromCid: oldCid }),
-        ]);
-        const hookData = _.clone(data);
-        hookData.fromCid = oldCid;
-        hookData.toCid = cid;
-        hookData.tid = tid;
+		plugins.hooks.fire('action:topic.pin', {topic: _.clone(topicData), uid});
 
-        plugins.hooks.fire('action:topic.move', hookData);
-    };
+		return topicData;
+	}
+
+	topicTools.orderPinnedTopics = async function (uid, data) {
+		const {tid, order} = data;
+		const cid = await Topics.getTopicField(tid, 'cid');
+
+		if (!cid || !tid || !utils.isNumber(order) || order < 0) {
+			throw new Error('[[error:invalid-data]]');
+		}
+
+		const isAdminOrModule = await privileges.categories.isAdminOrMod(cid, uid);
+		if (!isAdminOrModule) {
+			throw new Error('[[error:no-privileges]]');
+		}
+
+		const pinnedTids = await db.getSortedSetRange(`cid:${cid}:tids:pinned`, 0, -1);
+		const currentIndex = pinnedTids.indexOf(String(tid));
+		if (currentIndex === -1) {
+			return;
+		}
+
+		const newOrder = pinnedTids.length - order - 1;
+		// Moves tid to index order in the array
+		if (pinnedTids.length > 1) {
+			pinnedTids.splice(Math.max(0, newOrder), 0, pinnedTids.splice(currentIndex, 1)[0]);
+		}
+
+		await db.sortedSetAdd(
+			`cid:${cid}:tids:pinned`,
+			pinnedTids.map((tid, index) => index),
+			pinnedTids,
+		);
+	};
+
+	topicTools.move = async function (tid, data) {
+		const cid = Number.parseInt(data.cid, 10);
+		const topicData = await Topics.getTopicData(tid);
+		if (!topicData) {
+			throw new Error('[[error:no-topic]]');
+		}
+
+		if (cid === topicData.cid) {
+			throw new Error('[[error:cant-move-topic-to-same-category]]');
+		}
+
+		const tags = await Topics.getTopicTags(tid);
+		await db.sortedSetsRemove([
+			`cid:${topicData.cid}:tids`,
+			`cid:${topicData.cid}:tids:pinned`,
+			`cid:${topicData.cid}:tids:posts`,
+			`cid:${topicData.cid}:tids:votes`,
+			`cid:${topicData.cid}:tids:views`,
+			`cid:${topicData.cid}:tids:lastposttime`,
+			`cid:${topicData.cid}:recent_tids`,
+			`cid:${topicData.cid}:uid:${topicData.uid}:tids`,
+			...tags.map(tag => `cid:${topicData.cid}:tag:${tag}:topics`),
+		], tid);
+
+		topicData.postcount = topicData.postcount || 0;
+		const votes = topicData.upvotes - topicData.downvotes;
+
+		const bulk = [
+			[`cid:${cid}:tids:lastposttime`, topicData.lastposttime, tid],
+			[`cid:${cid}:uid:${topicData.uid}:tids`, topicData.timestamp, tid],
+			...tags.map(tag => [`cid:${cid}:tag:${tag}:topics`, topicData.timestamp, tid]),
+		];
+		if (topicData.pinned) {
+			bulk.push([`cid:${cid}:tids:pinned`, Date.now(), tid]);
+		} else {
+			bulk.push([`cid:${cid}:tids`, topicData.lastposttime, tid], [`cid:${cid}:tids:posts`, topicData.postcount, tid], [`cid:${cid}:tids:votes`, votes, tid], [`cid:${cid}:tids:views`, topicData.viewcount, tid]);
+		}
+
+		await db.sortedSetAddBulk(bulk);
+
+		const oldCid = topicData.cid;
+		await categories.moveRecentReplies(tid, oldCid, cid);
+
+		await Promise.all([
+			categories.incrementCategoryFieldBy(oldCid, 'topic_count', -1),
+			categories.incrementCategoryFieldBy(cid, 'topic_count', 1),
+			categories.updateRecentTidForCid(cid),
+			categories.updateRecentTidForCid(oldCid),
+			Topics.setTopicFields(tid, {
+				cid,
+				oldCid,
+			}),
+			Topics.updateCategoryTagsCount([oldCid, cid], tags),
+			Topics.events.log(tid, {type: 'move', uid: data.uid, fromCid: oldCid}),
+		]);
+		const hookData = _.clone(data);
+		hookData.fromCid = oldCid;
+		hookData.toCid = cid;
+		hookData.tid = tid;
+
+		plugins.hooks.fire('action:topic.move', hookData);
+	};
 };

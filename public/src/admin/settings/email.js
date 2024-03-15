@@ -1,126 +1,125 @@
 'use strict';
 
+define('admin/settings/email', ['ace/ace', 'alerts', 'admin/settings'], (ace, alerts) => {
+	const module = {};
+	let emailEditor;
 
-define('admin/settings/email', ['ace/ace', 'alerts', 'admin/settings'], function (ace, alerts) {
-    const module = {};
-    let emailEditor;
+	module.init = function () {
+		configureEmailTester();
+		configureEmailEditor();
+		handleDigestHourChange();
+		handleSmtpServiceChange();
 
-    module.init = function () {
-        configureEmailTester();
-        configureEmailEditor();
-        handleDigestHourChange();
-        handleSmtpServiceChange();
+		$(window).on('action:admin.settingsLoaded action:admin.settingsSaved', handleDigestHourChange);
+		$(window).on('action:admin.settingsSaved', () => {
+			socket.emit('admin.user.restartJobs');
+		});
+		$('[id="email:smtpTransport:service"]').change(handleSmtpServiceChange);
+	};
 
-        $(window).on('action:admin.settingsLoaded action:admin.settingsSaved', handleDigestHourChange);
-        $(window).on('action:admin.settingsSaved', function () {
-            socket.emit('admin.user.restartJobs');
-        });
-        $('[id="email:smtpTransport:service"]').change(handleSmtpServiceChange);
-    };
+	function configureEmailTester() {
+		$('button[data-action="email.test"]').off('click').on('click', () => {
+			socket.emit('admin.email.test', {template: $('#test-email').val()}, error => {
+				if (error) {
+					console.error(error.message);
+					return alerts.error(error);
+				}
 
-    function configureEmailTester() {
-        $('button[data-action="email.test"]').off('click').on('click', function () {
-            socket.emit('admin.email.test', { template: $('#test-email').val() }, function (err) {
-                if (err) {
-                    console.error(err.message);
-                    return alerts.error(err);
-                }
-                alerts.success('Test Email Sent');
-            });
-            return false;
-        });
-    }
+				alerts.success('Test Email Sent');
+			});
+			return false;
+		});
+	}
 
-    function configureEmailEditor() {
-        $('#email-editor-selector').on('change', updateEmailEditor);
+	function configureEmailEditor() {
+		$('#email-editor-selector').on('change', updateEmailEditor);
 
-        emailEditor = ace.edit('email-editor');
-        emailEditor.$blockScrolling = Infinity;
-        emailEditor.setTheme('ace/theme/twilight');
-        emailEditor.getSession().setMode('ace/mode/html');
+		emailEditor = ace.edit('email-editor');
+		emailEditor.$blockScrolling = Number.POSITIVE_INFINITY;
+		emailEditor.setTheme('ace/theme/twilight');
+		emailEditor.getSession().setMode('ace/mode/html');
 
-        emailEditor.on('change', function () {
-            const emailPath = $('#email-editor-selector').val();
-            let original;
-            ajaxify.data.emails.forEach(function (email) {
-                if (email.path === emailPath) {
-                    original = email.original;
-                }
-            });
-            const newEmail = emailEditor.getValue();
-            $('#email-editor-holder').val(newEmail !== original ? newEmail : '');
-        });
+		emailEditor.on('change', () => {
+			const emailPath = $('#email-editor-selector').val();
+			let original;
+			for (const email of ajaxify.data.emails) {
+				if (email.path === emailPath) {
+					original = email.original;
+				}
+			}
 
-        $('button[data-action="email.revert"]').off('click').on('click', function () {
-            ajaxify.data.emails.forEach(function (email) {
-                if (email.path === $('#email-editor-selector').val()) {
-                    emailEditor.getSession().setValue(email.original);
-                    $('#email-editor-holder').val('');
-                }
-            });
-        });
+			const newEmail = emailEditor.getValue();
+			$('#email-editor-holder').val(newEmail === original ? '' : newEmail);
+		});
 
-        updateEmailEditor();
-    }
+		$('button[data-action="email.revert"]').off('click').on('click', () => {
+			for (const email of ajaxify.data.emails) {
+				if (email.path === $('#email-editor-selector').val()) {
+					emailEditor.getSession().setValue(email.original);
+					$('#email-editor-holder').val('');
+				}
+			}
+		});
 
-    function updateEmailEditor() {
-        ajaxify.data.emails.forEach(function (email) {
-            if (email.path === $('#email-editor-selector').val()) {
-                emailEditor.getSession().setValue(email.text);
-                $('#email-editor-holder')
-                    .val(email.text !== email.original ? email.text : '')
-                    .attr('data-field', 'email:custom:' + email.path);
-            }
-        });
-    }
+		updateEmailEditor();
+	}
 
-    function handleDigestHourChange() {
-        let hour = parseInt($('#digestHour').val(), 10);
+	function updateEmailEditor() {
+		for (const email of ajaxify.data.emails) {
+			if (email.path === $('#email-editor-selector').val()) {
+				emailEditor.getSession().setValue(email.text);
+				$('#email-editor-holder')
+					.val(email.text === email.original ? '' : email.text)
+					.attr('data-field', 'email:custom:' + email.path);
+			}
+		}
+	}
 
-        if (isNaN(hour)) {
-            hour = 17;
-        } else if (hour > 23 || hour < 0) {
-            hour = 0;
-        }
+	function handleDigestHourChange() {
+		let hour = Number.parseInt($('#digestHour').val(), 10);
 
-        socket.emit('admin.getServerTime', {}, function (err, now) {
-            if (err) {
-                return alerts.error(err);
-            }
+		if (isNaN(hour)) {
+			hour = 17;
+		} else if (hour > 23 || hour < 0) {
+			hour = 0;
+		}
 
-            const date = new Date(now.timestamp);
-            const offset = (new Date().getTimezoneOffset() - now.offset) / 60;
-            date.setHours(date.getHours() + offset);
+		socket.emit('admin.getServerTime', {}, (error, now) => {
+			if (error) {
+				return alerts.error(error);
+			}
 
-            $('#serverTime').text(date.toLocaleTimeString());
+			const date = new Date(now.timestamp);
+			const offset = (new Date().getTimezoneOffset() - now.offset) / 60;
+			date.setHours(date.getHours() + offset);
 
-            date.setHours(parseInt(hour, 10) - offset, 0, 0, 0);
+			$('#serverTime').text(date.toLocaleTimeString());
 
-            // If adjusted time is in the past, move to next day
-            if (date.getTime() < Date.now()) {
-                date.setDate(date.getDate() + 1);
-            }
+			date.setHours(Number.parseInt(hour, 10) - offset, 0, 0, 0);
 
-            $('#nextDigestTime').text(date.toLocaleString());
-        });
-    }
+			// If adjusted time is in the past, move to next day
+			if (date.getTime() < Date.now()) {
+				date.setDate(date.getDate() + 1);
+			}
 
-    function handleSmtpServiceChange() {
-        const isCustom = $('[id="email:smtpTransport:service"]').val() === 'nodebb-custom-smtp';
-        $('[id="email:smtpTransport:custom-service"]')[isCustom ? 'slideDown' : 'slideUp'](isCustom);
+			$('#nextDigestTime').text(date.toLocaleString());
+		});
+	}
 
-        const enabledEl = document.getElementById('email:smtpTransport:enabled');
-        if (enabledEl) {
-            if (!enabledEl.checked) {
-                enabledEl.closest('label').classList.toggle('is-checked', true);
-                enabledEl.checked = true;
-                alerts.alert({
-                    message: '[[admin/settings/email:smtp-transport.auto-enable-toast]]',
-                    timeout: 5000,
-                });
-            }
-        }
-    }
+	function handleSmtpServiceChange() {
+		const isCustom = $('[id="email:smtpTransport:service"]').val() === 'nodebb-custom-smtp';
+		$('[id="email:smtpTransport:custom-service"]')[isCustom ? 'slideDown' : 'slideUp'](isCustom);
 
-    return module;
+		const enabledElement = document.querySelector('#email:smtpTransport:enabled');
+		if (enabledElement && !enabledElement.checked) {
+			enabledElement.closest('label').classList.toggle('is-checked', true);
+			enabledElement.checked = true;
+			alerts.alert({
+				message: '[[admin/settings/email:smtp-transport.auto-enable-toast]]',
+				timeout: 5000,
+			});
+		}
+	}
+
+	return module;
 });

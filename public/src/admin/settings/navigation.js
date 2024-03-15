@@ -1,157 +1,158 @@
 'use strict';
 
-
 define('admin/settings/navigation', [
-    'translator',
-    'iconSelect',
-    'benchpress',
-    'alerts',
-    'jquery-ui/widgets/draggable',
-    'jquery-ui/widgets/droppable',
-    'jquery-ui/widgets/sortable',
-], function (translator, iconSelect, Benchpress, alerts) {
-    const navigation = {};
-    let available;
+	'translator',
+	'iconSelect',
+	'benchpress',
+	'alerts',
+	'jquery-ui/widgets/draggable',
+	'jquery-ui/widgets/droppable',
+	'jquery-ui/widgets/sortable',
+], (translator, iconSelect, Benchpress, alerts) => {
+	const navigation = {};
+	let available;
 
-    navigation.init = function () {
-        available = ajaxify.data.available;
+	navigation.init = function () {
+		available = ajaxify.data.available;
 
-        $('#available').find('li .drag-item').draggable({
-            connectToSortable: '#active-navigation',
-            helper: 'clone',
-            distance: 10,
-            stop: drop,
-        });
+		$('#available').find('li .drag-item').draggable({
+			connectToSortable: '#active-navigation',
+			helper: 'clone',
+			distance: 10,
+			stop: drop,
+		});
 
-        $('#active-navigation').sortable().droppable({
-            accept: $('#available li .drag-item'),
-        });
+		$('#active-navigation').sortable().droppable({
+			accept: $('#available li .drag-item'),
+		});
 
-        $('#enabled').on('click', '.iconPicker', function () {
-            const iconEl = $(this).find('i');
-            iconSelect.init(iconEl, function (el) {
-                const newIconClass = el.attr('value');
-                const index = iconEl.parents('[data-index]').attr('data-index');
-                $('#active-navigation [data-index="' + index + '"] i.nav-icon').attr('class', 'fa fa-fw ' + newIconClass);
-                iconEl.siblings('[name="iconClass"]').val(newIconClass);
-                iconEl.siblings('.change-icon-link').toggleClass('hidden', !!newIconClass);
-            });
-        });
+		$('#enabled').on('click', '.iconPicker', function () {
+			const iconElement = $(this).find('i');
+			iconSelect.init(iconElement, element => {
+				const newIconClass = element.attr('value');
+				const index = iconElement.parents('[data-index]').attr('data-index');
+				$('#active-navigation [data-index="' + index + '"] i.nav-icon').attr('class', 'fa fa-fw ' + newIconClass);
+				iconElement.siblings('[name="iconClass"]').val(newIconClass);
+				iconElement.siblings('.change-icon-link').toggleClass('hidden', Boolean(newIconClass));
+			});
+		});
 
-        $('#enabled').on('click', '[name="dropdown"]', function () {
-            const el = $(this);
-            const index = el.parents('[data-index]').attr('data-index');
-            $('#active-navigation [data-index="' + index + '"] i.dropdown-icon').toggleClass('hidden', !el.is(':checked'));
-        });
+		$('#enabled').on('click', '[name="dropdown"]', function () {
+			const element = $(this);
+			const index = element.parents('[data-index]').attr('data-index');
+			$('#active-navigation [data-index="' + index + '"] i.dropdown-icon').toggleClass('hidden', !element.is(':checked'));
+		});
 
-        $('#active-navigation').on('click', 'li', onSelect);
+		$('#active-navigation').on('click', 'li', onSelect);
 
-        $('#enabled')
-            .on('click', '.delete', remove)
-            .on('click', '.toggle', toggle);
+		$('#enabled')
+			.on('click', '.delete', remove)
+			.on('click', '.toggle', toggle);
 
-        $('#save').on('click', save);
-    };
+		$('#save').on('click', save);
+	};
 
-    function onSelect() {
-        const clickedIndex = $(this).attr('data-index');
-        $('#active-navigation li').removeClass('active');
-        $(this).addClass('active');
+	function onSelect() {
+		const clickedIndex = $(this).attr('data-index');
+		$('#active-navigation li').removeClass('active');
+		$(this).addClass('active');
 
-        const detailsForm = $('#enabled').children('[data-index="' + clickedIndex + '"]');
-        $('#enabled li').addClass('hidden');
+		const detailsForm = $('#enabled').children('[data-index="' + clickedIndex + '"]');
+		$('#enabled li').addClass('hidden');
 
-        if (detailsForm.length) {
-            detailsForm.removeClass('hidden');
-        }
-        return false;
-    }
+		if (detailsForm.length > 0) {
+			detailsForm.removeClass('hidden');
+		}
 
-    function drop(ev, ui) {
-        const id = ui.helper.attr('data-id');
-        const el = $('#active-navigation [data-id="' + id + '"]');
-        const data = id === 'custom' ? {
-            iconClass: 'fa-navicon',
-            groups: available[0].groups,
-            enabled: true,
-        } : available[id];
+		return false;
+	}
 
-        data.index = (parseInt($('#enabled').children().last().attr('data-index'), 10) || 0) + 1;
-        data.title = translator.escape(data.title);
-        data.text = translator.escape(data.text);
-        data.groups = ajaxify.data.groups;
-        Benchpress.parse('admin/settings/navigation', 'navigation', { navigation: [data] }, function (li) {
-            translator.translate(li, function (li) {
-                li = $(translator.unescape(li));
-                el.after(li);
-                el.remove();
-            });
-        });
-        Benchpress.parse('admin/settings/navigation', 'enabled', { enabled: [data] }, function (li) {
-            translator.translate(li, function (li) {
-                li = $(translator.unescape(li));
-                $('#enabled').append(li);
-                componentHandler.upgradeDom();
-            });
-        });
-    }
+	function drop(event, ui) {
+		const id = ui.helper.attr('data-id');
+		const element = $('#active-navigation [data-id="' + id + '"]');
+		const data = id === 'custom' ? {
+			iconClass: 'fa-navicon',
+			groups: available[0].groups,
+			enabled: true,
+		} : available[id];
 
-    function save() {
-        const nav = [];
+		data.index = (Number.parseInt($('#enabled').children().last().attr('data-index'), 10) || 0) + 1;
+		data.title = translator.escape(data.title);
+		data.text = translator.escape(data.text);
+		data.groups = ajaxify.data.groups;
+		Benchpress.parse('admin/settings/navigation', 'navigation', {navigation: [data]}, li => {
+			translator.translate(li, li => {
+				li = $(translator.unescape(li));
+				element.after(li);
+				element.remove();
+			});
+		});
+		Benchpress.parse('admin/settings/navigation', 'enabled', {enabled: [data]}, li => {
+			translator.translate(li, li => {
+				li = $(translator.unescape(li));
+				$('#enabled').append(li);
+				componentHandler.upgradeDom();
+			});
+		});
+	}
 
-        const indices = [];
-        $('#active-navigation li').each(function () {
-            indices.push($(this).attr('data-index'));
-        });
+	function save() {
+		const nav = [];
 
-        indices.forEach(function (index) {
-            const el = $('#enabled').children('[data-index="' + index + '"]');
-            const form = el.find('form').serializeArray();
-            const data = {};
+		const indices = [];
+		$('#active-navigation li').each(function () {
+			indices.push($(this).attr('data-index'));
+		});
 
-            form.forEach(function (input) {
-                if (data[input.name]) {
-                    if (!Array.isArray(data[input.name])) {
-                        data[input.name] = [
-                            data[input.name],
-                        ];
-                    }
-                    data[input.name].push(input.value);
-                } else {
-                    data[input.name] = input.value;
-                }
-            });
+		for (const index of indices) {
+			const element = $('#enabled').children('[data-index="' + index + '"]');
+			const form = element.find('form').serializeArray();
+			const data = {};
 
-            nav.push(data);
-        });
+			for (const input of form) {
+				if (data[input.name]) {
+					if (!Array.isArray(data[input.name])) {
+						data[input.name] = [
+							data[input.name],
+						];
+					}
 
-        socket.emit('admin.navigation.save', nav, function (err) {
-            if (err) {
-                alerts.error(err);
-            } else {
-                alerts.success('Successfully saved navigation');
-            }
-        });
-    }
+					data[input.name].push(input.value);
+				} else {
+					data[input.name] = input.value;
+				}
+			}
 
-    function remove() {
-        const index = $(this).parents('[data-index]').attr('data-index');
-        $('#active-navigation [data-index="' + index + '"]').remove();
-        $('#enabled [data-index="' + index + '"]').remove();
-        return false;
-    }
+			nav.push(data);
+		}
 
-    function toggle() {
-        const btn = $(this);
-        const disabled = btn.hasClass('btn-success');
-        const index = btn.parents('[data-index]').attr('data-index');
-        translator.translate(disabled ? '[[admin/settings/navigation:btn.disable]]' : '[[admin/settings/navigation:btn.enable]]', function (html) {
-            btn.toggleClass('btn-warning').toggleClass('btn-success').html(html);
-            btn.parents('li').find('[name="enabled"]').val(disabled ? 'on' : '');
-            $('#active-navigation [data-index="' + index + '"] a').toggleClass('text-muted', !disabled);
-        });
-        return false;
-    }
+		socket.emit('admin.navigation.save', nav, error => {
+			if (error) {
+				alerts.error(error);
+			} else {
+				alerts.success('Successfully saved navigation');
+			}
+		});
+	}
 
-    return navigation;
+	function remove() {
+		const index = $(this).parents('[data-index]').attr('data-index');
+		$('#active-navigation [data-index="' + index + '"]').remove();
+		$('#enabled [data-index="' + index + '"]').remove();
+		return false;
+	}
+
+	function toggle() {
+		const button = $(this);
+		const disabled = button.hasClass('btn-success');
+		const index = button.parents('[data-index]').attr('data-index');
+		translator.translate(disabled ? '[[admin/settings/navigation:btn.disable]]' : '[[admin/settings/navigation:btn.enable]]', html => {
+			button.toggleClass('btn-warning').toggleClass('btn-success').html(html);
+			button.parents('li').find('[name="enabled"]').val(disabled ? 'on' : '');
+			$('#active-navigation [data-index="' + index + '"] a').toggleClass('text-muted', !disabled);
+		});
+		return false;
+	}
+
+	return navigation;
 });

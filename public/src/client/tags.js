@@ -1,64 +1,65 @@
 'use strict';
 
+define('forum/tags', ['forum/infinitescroll', 'alerts'], (infinitescroll, alerts) => {
+	const Tags = {};
 
-define('forum/tags', ['forum/infinitescroll', 'alerts'], function (infinitescroll, alerts) {
-    const Tags = {};
+	Tags.init = function () {
+		app.enterRoom('tags');
+		$('#tag-search').focus();
+		$('#tag-search').on('input propertychange', utils.debounce(() => {
+			if ($('#tag-search').val().length === 0) {
+				return resetSearch();
+			}
 
-    Tags.init = function () {
-        app.enterRoom('tags');
-        $('#tag-search').focus();
-        $('#tag-search').on('input propertychange', utils.debounce(function () {
-            if (!$('#tag-search').val().length) {
-                return resetSearch();
-            }
+			socket.emit('topics.searchAndLoadTags', {query: $('#tag-search').val()}, (error, results) => {
+				if (error) {
+					return alerts.error(error);
+				}
 
-            socket.emit('topics.searchAndLoadTags', { query: $('#tag-search').val() }, function (err, results) {
-                if (err) {
-                    return alerts.error(err);
-                }
-                onTagsLoaded(results.tags, true);
-            });
-        }, 250));
+				onTagsLoaded(results.tags, true);
+			});
+		}, 250));
 
-        infinitescroll.init(Tags.loadMoreTags);
-    };
+		infinitescroll.init(Tags.loadMoreTags);
+	};
 
-    Tags.loadMoreTags = function (direction) {
-        if (direction < 0 || !$('.tag-list').length || $('#tag-search').val()) {
-            return;
-        }
+	Tags.loadMoreTags = function (direction) {
+		if (direction < 0 || $('.tag-list').length === 0 || $('#tag-search').val()) {
+			return;
+		}
 
-        infinitescroll.loadMore('topics.loadMoreTags', {
-            after: $('.tag-list').attr('data-nextstart'),
-        }, function (data, done) {
-            if (data && data.tags && data.tags.length) {
-                onTagsLoaded(data.tags, false, done);
-                $('.tag-list').attr('data-nextstart', data.nextStart);
-            } else {
-                done();
-            }
-        });
-    };
+		infinitescroll.loadMore('topics.loadMoreTags', {
+			after: $('.tag-list').attr('data-nextstart'),
+		}, (data, done) => {
+			if (data && data.tags && data.tags.length > 0) {
+				onTagsLoaded(data.tags, false, done);
+				$('.tag-list').attr('data-nextstart', data.nextStart);
+			} else {
+				done();
+			}
+		});
+	};
 
-    function resetSearch() {
-        socket.emit('topics.loadMoreTags', {
-            after: 0,
-        }, function (err, data) {
-            if (err) {
-                return alerts.error(err);
-            }
-            onTagsLoaded(data.tags, true);
-        });
-    }
+	function resetSearch() {
+		socket.emit('topics.loadMoreTags', {
+			after: 0,
+		}, (error, data) => {
+			if (error) {
+				return alerts.error(error);
+			}
 
-    function onTagsLoaded(tags, replace, callback) {
-        callback = callback || function () {};
-        app.parseAndTranslate('tags', 'tags', { tags: tags }, function (html) {
-            $('.tag-list')[replace ? 'html' : 'append'](html);
-            utils.makeNumbersHumanReadable(html.find('.human-readable-number'));
-            callback();
-        });
-    }
+			onTagsLoaded(data.tags, true);
+		});
+	}
 
-    return Tags;
+	function onTagsLoaded(tags, replace, callback) {
+		callback ||= function () {};
+		app.parseAndTranslate('tags', 'tags', {tags}, html => {
+			$('.tag-list')[replace ? 'html' : 'append'](html);
+			utils.makeNumbersHumanReadable(html.find('.human-readable-number'));
+			callback();
+		});
+	}
+
+	return Tags;
 });

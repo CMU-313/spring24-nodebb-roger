@@ -5,67 +5,83 @@ const plugins = require('../plugins');
 const utils = require('../utils');
 
 const intFields = [
-    'uid', 'pid', 'tid', 'deleted', 'timestamp',
-    'upvotes', 'downvotes', 'deleterUid', 'edited',
-    'replies', 'bookmarks', 'pinned', 'resolved',
+	'uid',
+	'pid',
+	'tid',
+	'deleted',
+	'timestamp',
+	'upvotes',
+	'downvotes',
+	'deleterUid',
+	'edited',
+	'replies',
+	'bookmarks',
+	'pinned',
+	'resolved',
 ];
 
 module.exports = function (Posts) {
-    Posts.getPostsFields = async function (pids, fields) {
-        if (!Array.isArray(pids) || !pids.length) {
-            return [];
-        }
-        const keys = pids.map(pid => `post:${pid}`);
-        const postData = await db.getObjects(keys, fields);
-        const result = await plugins.hooks.fire('filter:post.getFields', {
-            pids: pids,
-            posts: postData,
-            fields: fields,
-        });
-        result.posts.forEach(post => modifyPost(post, fields));
-        return result.posts;
-    };
+	Posts.getPostsFields = async function (pids, fields) {
+		if (!Array.isArray(pids) || pids.length === 0) {
+			return [];
+		}
 
-    Posts.getPostData = async function (pid) {
-        const posts = await Posts.getPostsFields([pid], []);
-        return posts && posts.length ? posts[0] : null;
-    };
+		const keys = pids.map(pid => `post:${pid}`);
+		const postData = await db.getObjects(keys, fields);
+		const result = await plugins.hooks.fire('filter:post.getFields', {
+			pids,
+			posts: postData,
+			fields,
+		});
+		for (const post of result.posts) {
+			modifyPost(post, fields);
+		}
 
-    Posts.getPostsData = async function (pids) {
-        return await Posts.getPostsFields(pids, []);
-    };
+		return result.posts;
+	};
 
-    Posts.getPostField = async function (pid, field) {
-        const post = await Posts.getPostFields(pid, [field]);
-        return post ? post[field] : null;
-    };
+	Posts.getPostData = async function (pid) {
+		const posts = await Posts.getPostsFields([pid], []);
+		return posts && posts.length > 0 ? posts[0] : null;
+	};
 
-    Posts.getPostFields = async function (pid, fields) {
-        const posts = await Posts.getPostsFields([pid], fields);
-        return posts ? posts[0] : null;
-    };
+	Posts.getPostsData = async function (pids) {
+		return await Posts.getPostsFields(pids, []);
+	};
 
-    Posts.setPostField = async function (pid, field, value) {
-        await Posts.setPostFields(pid, { [field]: value });
-    };
+	Posts.getPostField = async function (pid, field) {
+		const post = await Posts.getPostFields(pid, [field]);
+		return post ? post[field] : null;
+	};
 
-    Posts.setPostFields = async function (pid, data) {
-        await db.setObject(`post:${pid}`, data);
-        plugins.hooks.fire('action:post.setFields', { data: { ...data, pid } });
-    };
+	Posts.getPostFields = async function (pid, fields) {
+		const posts = await Posts.getPostsFields([pid], fields);
+		return posts ? posts[0] : null;
+	};
+
+	Posts.setPostField = async function (pid, field, value) {
+		await Posts.setPostFields(pid, {[field]: value});
+	};
+
+	Posts.setPostFields = async function (pid, data) {
+		await db.setObject(`post:${pid}`, data);
+		plugins.hooks.fire('action:post.setFields', {data: {...data, pid}});
+	};
 };
 
 function modifyPost(post, fields) {
-    if (post) {
-        db.parseIntFields(post, intFields, fields);
-        if (post.hasOwnProperty('upvotes') && post.hasOwnProperty('downvotes')) {
-            post.votes = post.upvotes - post.downvotes;
-        }
-        if (post.hasOwnProperty('timestamp')) {
-            post.timestampISO = utils.toISOString(post.timestamp);
-        }
-        if (post.hasOwnProperty('edited')) {
-            post.editedISO = post.edited !== 0 ? utils.toISOString(post.edited) : '';
-        }
-    }
+	if (post) {
+		db.parseIntFields(post, intFields, fields);
+		if (post.hasOwnProperty('upvotes') && post.hasOwnProperty('downvotes')) {
+			post.votes = post.upvotes - post.downvotes;
+		}
+
+		if (post.hasOwnProperty('timestamp')) {
+			post.timestampISO = utils.toISOString(post.timestamp);
+		}
+
+		if (post.hasOwnProperty('edited')) {
+			post.editedISO = post.edited === 0 ? '' : utils.toISOString(post.edited);
+		}
+	}
 }

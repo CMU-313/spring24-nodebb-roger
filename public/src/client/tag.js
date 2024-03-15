@@ -1,13 +1,13 @@
 'use strict';
 
-define('forum/tag', ['topicList', 'forum/infinitescroll'], function (topicList) {
-    const Tag = {};
+define('forum/tag', ['topicList', 'forum/infinitescroll'], topicList => {
+	const Tag = {};
 
-    Tag.init = function () {
-        app.enterRoom('tags');
+	Tag.init = function () {
+		app.enterRoom('tags');
 
-        topicList.init('tag');
-    };
+		topicList.init('tag');
+	};
 
-    return Tag;
+	return Tag;
 });

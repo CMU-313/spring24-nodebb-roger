@@ -1,323 +1,326 @@
 'use strict';
 
-const { utils } = require('sortablejs');
-
+const {utils} = require('sortablejs');
 
 define('forum/topic/threadTools', [
-    'components',
-    'translator',
-    'handleBack',
-    'forum/topic/posts',
-    'api',
-    'hooks',
-    'bootbox',
-    'alerts',
-], function (components, translator, handleBack, posts, api, hooks, bootbox, alerts) {
-    const ThreadTools = {};
+	'components',
+	'translator',
+	'handleBack',
+	'forum/topic/posts',
+	'api',
+	'hooks',
+	'bootbox',
+	'alerts',
+], (components, translator, handleBack, posts, api, hooks, bootbox, alerts) => {
+	const ThreadTools = {};
 
-    ThreadTools.init = function (tid, topicContainer) {
-        renderMenu(topicContainer);
+	ThreadTools.init = function (tid, topicContainer) {
+		renderMenu(topicContainer);
 
-        // function topicCommand(method, path, command, onComplete) {
-        topicContainer.on('click', '[component="topic/delete"]', function () {
-            topicCommand('del', '/state', 'delete');
-            return false;
-        });
+		// Function topicCommand(method, path, command, onComplete) {
+		topicContainer.on('click', '[component="topic/delete"]', () => {
+			topicCommand('del', '/state', 'delete');
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/restore"]', function () {
-            topicCommand('put', '/state', 'restore');
-            return false;
-        });
+		topicContainer.on('click', '[component="topic/restore"]', () => {
+			topicCommand('put', '/state', 'restore');
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/purge"]', function () {
-            topicCommand('del', '', 'purge');
-            return false;
-        });
+		topicContainer.on('click', '[component="topic/purge"]', () => {
+			topicCommand('del', '', 'purge');
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/lock"]', function () {
-            topicCommand('put', '/lock', 'lock');
-            return false;
-        });
+		topicContainer.on('click', '[component="topic/lock"]', () => {
+			topicCommand('put', '/lock', 'lock');
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/unlock"]', function () {
-            topicCommand('del', '/lock', 'unlock');
-            return false;
-        });
+		topicContainer.on('click', '[component="topic/unlock"]', () => {
+			topicCommand('del', '/lock', 'unlock');
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/pin"]', function () {
-            topicCommand('put', '/pin', 'pin');
-            return false;
-        });
+		topicContainer.on('click', '[component="topic/pin"]', () => {
+			topicCommand('put', '/pin', 'pin');
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/unpin"]', function () {
-            topicCommand('del', '/pin', 'unpin');
-            return false;
-        });
+		topicContainer.on('click', '[component="topic/unpin"]', () => {
+			topicCommand('del', '/pin', 'unpin');
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/private"]', function () {
-            topicCommand('put', '/private', 'private');
-            return false;
-        });
+		topicContainer.on('click', '[component="topic/private"]', () => {
+			topicCommand('put', '/private', 'private');
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/public"]', function () {
-            topicCommand('del', '/private', 'public');
-            return false;
-        });
+		topicContainer.on('click', '[component="topic/public"]', () => {
+			topicCommand('del', '/private', 'public');
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/event/delete"]', function () {
-            const eventId = $(this).attr('data-topic-event-id');
-            const eventEl = $(this).parents('[component="topic/event"]');
-            bootbox.confirm('[[topic:delete-event-confirm]]', (ok) => {
-                if (ok) {
-                    api.del(`/topics/${tid}/events/${eventId}`, {})
-                        .then(function () {
-                            eventEl.remove();
-                        })
-                        .catch(alerts.error);
-                }
-            });
-        });
+		topicContainer.on('click', '[component="topic/event/delete"]', function () {
+			const eventId = $(this).attr('data-topic-event-id');
+			const eventElement = $(this).parents('[component="topic/event"]');
+			bootbox.confirm('[[topic:delete-event-confirm]]', ok => {
+				if (ok) {
+					api.del(`/topics/${tid}/events/${eventId}`, {})
+						.then(() => {
+							eventElement.remove();
+						})
+						.catch(alerts.error);
+				}
+			});
+		});
 
-        // todo: should also use topicCommand, but no write api call exists for this yet
-        topicContainer.on('click', '[component="topic/mark-unread"]', function () {
-            socket.emit('topics.markUnread', tid, function (err) {
-                if (err) {
-                    return alerts.error(err);
-                }
+		// Todo: should also use topicCommand, but no write api call exists for this yet
+		topicContainer.on('click', '[component="topic/mark-unread"]', () => {
+			socket.emit('topics.markUnread', tid, error => {
+				if (error) {
+					return alerts.error(error);
+				}
 
-                if (app.previousUrl && !app.previousUrl.match('^/topic')) {
-                    ajaxify.go(app.previousUrl, function () {
-                        handleBack.onBackClicked(true);
-                    });
-                } else if (ajaxify.data.category) {
-                    ajaxify.go('category/' + ajaxify.data.category.slug, handleBack.onBackClicked);
-                }
+				if (app.previousUrl && !app.previousUrl.match('^/topic')) {
+					ajaxify.go(app.previousUrl, () => {
+						handleBack.onBackClicked(true);
+					});
+				} else if (ajaxify.data.category) {
+					ajaxify.go('category/' + ajaxify.data.category.slug, handleBack.onBackClicked);
+				}
 
-                alerts.success('[[topic:mark_unread.success]]');
-            });
-            return false;
-        });
+				alerts.success('[[topic:mark_unread.success]]');
+			});
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/mark-unread-for-all"]', function () {
-            const btn = $(this);
-            socket.emit('topics.markAsUnreadForAll', [tid], function (err) {
-                if (err) {
-                    return alerts.error(err);
-                }
-                alerts.success('[[topic:markAsUnreadForAll.success]]');
-                btn.parents('.thread-tools.open').find('.dropdown-toggle').trigger('click');
-            });
-            return false;
-        });
+		topicContainer.on('click', '[component="topic/mark-unread-for-all"]', function () {
+			const button = $(this);
+			socket.emit('topics.markAsUnreadForAll', [tid], error => {
+				if (error) {
+					return alerts.error(error);
+				}
 
-        topicContainer.on('click', '[component="topic/move"]', function () {
-            require(['forum/topic/move'], function (move) {
-                move.init([tid], ajaxify.data.cid);
-            });
-            return false;
-        });
+				alerts.success('[[topic:markAsUnreadForAll.success]]');
+				button.parents('.thread-tools.open').find('.dropdown-toggle').trigger('click');
+			});
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/delete/posts"]', function () {
-            require(['forum/topic/delete-posts'], function (deletePosts) {
-                deletePosts.init();
-            });
-        });
+		topicContainer.on('click', '[component="topic/move"]', () => {
+			require(['forum/topic/move'], move => {
+				move.init([tid], ajaxify.data.cid);
+			});
+			return false;
+		});
 
-        topicContainer.on('click', '[component="topic/fork"]', function () {
-            require(['forum/topic/fork'], function (fork) {
-                fork.init();
-            });
-        });
+		topicContainer.on('click', '[component="topic/delete/posts"]', () => {
+			require(['forum/topic/delete-posts'], deletePosts => {
+				deletePosts.init();
+			});
+		});
 
-        topicContainer.on('click', '[component="topic/move-posts"]', function () {
-            require(['forum/topic/move-post'], function (movePosts) {
-                movePosts.init();
-            });
-        });
+		topicContainer.on('click', '[component="topic/fork"]', () => {
+			require(['forum/topic/fork'], fork => {
+				fork.init();
+			});
+		});
 
-        topicContainer.on('click', '[component="topic/following"]', function () {
-            changeWatching('follow');
-        });
-        topicContainer.on('click', '[component="topic/not-following"]', function () {
-            changeWatching('follow', 0);
-        });
-        topicContainer.on('click', '[component="topic/ignoring"]', function () {
-            changeWatching('ignore');
-        });
+		topicContainer.on('click', '[component="topic/move-posts"]', () => {
+			require(['forum/topic/move-post'], movePosts => {
+				movePosts.init();
+			});
+		});
 
-        function changeWatching(type, state = 1) {
-            const method = state ? 'put' : 'del';
-            api[method](`/topics/${tid}/${type}`, {}, () => {
-                let message = '';
-                if (type === 'follow') {
-                    message = state ? '[[topic:following_topic.message]]' : '[[topic:not_following_topic.message]]';
-                } else if (type === 'ignore') {
-                    message = state ? '[[topic:ignoring_topic.message]]' : '[[topic:not_following_topic.message]]';
-                }
+		topicContainer.on('click', '[component="topic/following"]', () => {
+			changeWatching('follow');
+		});
+		topicContainer.on('click', '[component="topic/not-following"]', () => {
+			changeWatching('follow', 0);
+		});
+		topicContainer.on('click', '[component="topic/ignoring"]', () => {
+			changeWatching('ignore');
+		});
 
-                // From here on out, type changes to 'unfollow' if state is falsy
-                if (!state) {
-                    type = 'unfollow';
-                }
+		function changeWatching(type, state = 1) {
+			const method = state ? 'put' : 'del';
+			api[method](`/topics/${tid}/${type}`, {}, () => {
+				let message = '';
+				if (type === 'follow') {
+					message = state ? '[[topic:following_topic.message]]' : '[[topic:not_following_topic.message]]';
+				} else if (type === 'ignore') {
+					message = state ? '[[topic:ignoring_topic.message]]' : '[[topic:not_following_topic.message]]';
+				}
 
-                setFollowState(type);
+				// From here on out, type changes to 'unfollow' if state is falsy
+				if (!state) {
+					type = 'unfollow';
+				}
 
-                alerts.alert({
-                    alert_id: 'follow_thread',
-                    message: message,
-                    type: 'success',
-                    timeout: 5000,
-                });
+				setFollowState(type);
 
-                hooks.fire('action:topics.changeWatching', { tid: tid, type: type });
-            }, () => {
-                alerts.alert({
-                    type: 'danger',
-                    alert_id: 'topic_follow',
-                    title: '[[global:please_log_in]]',
-                    message: '[[topic:login_to_subscribe]]',
-                    timeout: 5000,
-                });
-            });
+				alerts.alert({
+					alert_id: 'follow_thread',
+					message,
+					type: 'success',
+					timeout: 5000,
+				});
 
-            return false;
-        }
-    };
+				hooks.fire('action:topics.changeWatching', {tid, type});
+			}, () => {
+				alerts.alert({
+					type: 'danger',
+					alert_id: 'topic_follow',
+					title: '[[global:please_log_in]]',
+					message: '[[topic:login_to_subscribe]]',
+					timeout: 5000,
+				});
+			});
 
-    function renderMenu(container) {
-        container.on('show.bs.dropdown', '.thread-tools', function () {
-            const $this = $(this);
-            const dropdownMenu = $this.find('.dropdown-menu');
-            if (dropdownMenu.html()) {
-                return;
-            }
+			return false;
+		}
+	};
 
-            dropdownMenu.toggleClass('hidden', true);
-            socket.emit('topics.loadTopicTools', { tid: ajaxify.data.tid, cid: ajaxify.data.cid }, function (err, data) {
-                if (err) {
-                    return alerts.error(err);
-                }
-                app.parseAndTranslate('partials/topic/topic-menu-list', data, function (html) {
-                    dropdownMenu.html(html);
-                    dropdownMenu.toggleClass('hidden', false);
+	function renderMenu(container) {
+		container.on('show.bs.dropdown', '.thread-tools', function () {
+			const $this = $(this);
+			const dropdownMenu = $this.find('.dropdown-menu');
+			if (dropdownMenu.html()) {
+				return;
+			}
 
-                    hooks.fire('action:topic.tools.load', {
-                        element: dropdownMenu,
-                    });
-                });
-            });
-        });
-    }
+			dropdownMenu.toggleClass('hidden', true);
+			socket.emit('topics.loadTopicTools', {tid: ajaxify.data.tid, cid: ajaxify.data.cid}, (error, data) => {
+				if (error) {
+					return alerts.error(error);
+				}
 
-    function topicCommand(method, path, command, onComplete) {
-        if (!onComplete) {
-            onComplete = function () {};
-        }
-        const tid = ajaxify.data.tid;
-        const body = {};
-        const execute = function (ok) {
-            if (ok) {
-                api[method](`/topics/${tid}${path}`, body)
-                    .then(onComplete)
-                    .catch(alerts.error);
-            }
-        };
+				app.parseAndTranslate('partials/topic/topic-menu-list', data, html => {
+					dropdownMenu.html(html);
+					dropdownMenu.toggleClass('hidden', false);
 
-        switch (command) {
-        case 'delete':
-        case 'restore':
-        case 'purge':
-            bootbox.confirm(`[[topic:thread_tools.${command}_confirm]]`, execute);
-            break;
+					hooks.fire('action:topic.tools.load', {
+						element: dropdownMenu,
+					});
+				});
+			});
+		});
+	}
 
-        case 'pin':
-            ThreadTools.requestPinExpiry(body, execute.bind(null, true));
-            break;
+	function topicCommand(method, path, command, onComplete) {
+		onComplete ||= function () {};
 
-        default:
-            execute(true);
-            break;
-        }
-    }
+		const tid = ajaxify.data.tid;
+		const body = {};
+		const execute = function (ok) {
+			if (ok) {
+				api[method](`/topics/${tid}${path}`, body)
+					.then(onComplete)
+					.catch(alerts.error);
+			}
+		};
 
-    ThreadTools.requestPinExpiry = function (body, onSuccess) {
-        app.parseAndTranslate('modals/set-pin-expiry', {}, function (html) {
-            const modal = bootbox.dialog({
-                title: '[[topic:thread_tools.pin]]',
-                message: html,
-                onEscape: true,
-                size: 'small',
-                buttons: {
-                    cancel: {
-                        label: '[[modules:bootbox.cancel]]',
-                        className: 'btn-link',
-                    },
-                    save: {
-                        label: '[[global:save]]',
-                        className: 'btn-primary',
-                        callback: function () {
-                            const expiryEl = modal.get(0).querySelector('#expiry');
-                            let expiry = expiryEl.value;
+		switch (command) {
+			case 'delete':
+			case 'restore':
+			case 'purge': {
+				bootbox.confirm(`[[topic:thread_tools.${command}_confirm]]`, execute);
+				break;
+			}
 
-                            // No expiry set
-                            if (expiry === '') {
-                                return onSuccess();
-                            }
+			case 'pin': {
+				ThreadTools.requestPinExpiry(body, execute.bind(null, true));
+				break;
+			}
 
-                            // Expiration date set
-                            expiry = new Date(expiry);
+			default: {
+				execute(true);
+				break;
+			}
+		}
+	}
 
-                            if (expiry && expiry.getTime() > Date.now()) {
-                                body.expiry = expiry.getTime();
-                                onSuccess();
-                            } else {
-                                alerts.error('[[error:invalid-date]]');
-                            }
-                        },
-                    },
-                },
-            });
-        });
-    };
+	ThreadTools.requestPinExpiry = function (body, onSuccess) {
+		app.parseAndTranslate('modals/set-pin-expiry', {}, html => {
+			const modal = bootbox.dialog({
+				title: '[[topic:thread_tools.pin]]',
+				message: html,
+				onEscape: true,
+				size: 'small',
+				buttons: {
+					cancel: {
+						label: '[[modules:bootbox.cancel]]',
+						className: 'btn-link',
+					},
+					save: {
+						label: '[[global:save]]',
+						className: 'btn-primary',
+						callback() {
+							const expiryElement = modal.get(0).querySelector('#expiry');
+							let expiry = expiryElement.value;
 
-    ThreadTools.setLockedState = function (data) {
-        const threadEl = components.get('topic');
-        if (parseInt(data.tid, 10) !== parseInt(threadEl.attr('data-tid'), 10)) {
-            return;
-        }
+							// No expiry set
+							if (expiry === '') {
+								return onSuccess();
+							}
 
-        const isLocked = data.isLocked && !ajaxify.data.privileges.isAdminOrMod;
+							// Expiration date set
+							expiry = new Date(expiry);
 
-        components.get('topic/lock').toggleClass('hidden', data.isLocked).parent().attr('hidden', data.isLocked ? '' : null);
-        components.get('topic/unlock').toggleClass('hidden', !data.isLocked).parent().attr('hidden', !data.isLocked ? '' : null);
+							if (expiry && expiry.getTime() > Date.now()) {
+								body.expiry = expiry.getTime();
+								onSuccess();
+							} else {
+								alerts.error('[[error:invalid-date]]');
+							}
+						},
+					},
+				},
+			});
+		});
+	};
 
-        const hideReply = !!((data.isLocked || ajaxify.data.deleted) && !ajaxify.data.privileges.isAdminOrMod);
+	ThreadTools.setLockedState = function (data) {
+		const threadElement = components.get('topic');
+		if (Number.parseInt(data.tid, 10) !== Number.parseInt(threadElement.attr('data-tid'), 10)) {
+			return;
+		}
 
-        components.get('topic/reply/container').toggleClass('hidden', hideReply);
-        components.get('topic/reply/locked').toggleClass('hidden', ajaxify.data.privileges.isAdminOrMod || !data.isLocked || ajaxify.data.deleted);
+		const isLocked = data.isLocked && !ajaxify.data.privileges.isAdminOrMod;
 
-        threadEl.find('[component="post"]:not(.deleted) [component="post/reply"], [component="post"]:not(.deleted) [component="post/quote"]').toggleClass('hidden', hideReply);
-        threadEl.find('[component="post/edit"], [component="post/delete"]').toggleClass('hidden', isLocked);
+		components.get('topic/lock').toggleClass('hidden', data.isLocked).parent().attr('hidden', data.isLocked ? '' : null);
+		components.get('topic/unlock').toggleClass('hidden', !data.isLocked).parent().attr('hidden', data.isLocked ? null : '');
 
-        threadEl.find('[component="post"][data-uid="' + app.user.uid + '"].deleted [component="post/tools"]').toggleClass('hidden', isLocked);
+		const hideReply = Boolean((data.isLocked || ajaxify.data.deleted) && !ajaxify.data.privileges.isAdminOrMod);
 
-        $('[component="topic/labels"] [component="topic/locked"]').toggleClass('hidden', !data.isLocked);
-        $('[component="post/tools"] .dropdown-menu').html('');
-        ajaxify.data.locked = data.isLocked;
+		components.get('topic/reply/container').toggleClass('hidden', hideReply);
+		components.get('topic/reply/locked').toggleClass('hidden', ajaxify.data.privileges.isAdminOrMod || !data.isLocked || ajaxify.data.deleted);
 
-        posts.addTopicEvents(data.events);
-    };
+		threadElement.find('[component="post"]:not(.deleted) [component="post/reply"], [component="post"]:not(.deleted) [component="post/quote"]').toggleClass('hidden', hideReply);
+		threadElement.find('[component="post/edit"], [component="post/delete"]').toggleClass('hidden', isLocked);
 
-    ThreadTools.setPrivateState = function (data) {
-        const threadEl = components.get('topic');
-        if (parseInt(data.tid, 10) !== parseInt(threadEl.attr('data-tid'), 10)) {
-            return;
-        }
+		threadElement.find('[component="post"][data-uid="' + app.user.uid + '"].deleted [component="post/tools"]').toggleClass('hidden', isLocked);
 
-        components.get('topic/private').toggleClass('hidden', data.isPrivate).parent().attr('hidden', data.isPrivate ? '' : null);
-        components.get('topic/public').toggleClass('hidden', !data.isPrivate).parent().attr('hidden', !data.isPrivate ? '' : null);
+		$('[component="topic/labels"] [component="topic/locked"]').toggleClass('hidden', !data.isLocked);
+		$('[component="post/tools"] .dropdown-menu').html('');
+		ajaxify.data.locked = data.isLocked;
 
-        /* if (data.isPrivate) {
+		posts.addTopicEvents(data.events);
+	};
+
+	ThreadTools.setPrivateState = function (data) {
+		const threadElement = components.get('topic');
+		if (Number.parseInt(data.tid, 10) !== Number.parseInt(threadElement.attr('data-tid'), 10)) {
+			return;
+		}
+
+		components.get('topic/private').toggleClass('hidden', data.isPrivate).parent().attr('hidden', data.isPrivate ? '' : null);
+		components.get('topic/public').toggleClass('hidden', !data.isPrivate).parent().attr('hidden', data.isPrivate ? null : '');
+
+		/* If (data.isPrivate) {
             app.parseAndTranslate('partials/topic/privated-message', {
                 privater: data.user,
                 private: true,
@@ -328,93 +331,93 @@ define('forum/topic/threadTools', [
             });
         } */
 
-        threadEl.toggleClass('private', data.isPrivate);
-        ajaxify.data.private = data.isPrivate ? 1 : 0;
+		threadElement.toggleClass('private', data.isPrivate);
+		ajaxify.data.private = data.isPrivate ? 1 : 0;
 
-        posts.addTopicEvents(data.event);
-    };
+		posts.addTopicEvents(data.event);
+	};
 
-    ThreadTools.setDeleteState = function (data) {
-        const threadEl = components.get('topic');
-        if (parseInt(data.tid, 10) !== parseInt(threadEl.attr('data-tid'), 10)) {
-            return;
-        }
+	ThreadTools.setDeleteState = function (data) {
+		const threadElement = components.get('topic');
+		if (Number.parseInt(data.tid, 10) !== Number.parseInt(threadElement.attr('data-tid'), 10)) {
+			return;
+		}
 
-        components.get('topic/delete').toggleClass('hidden', data.isDelete).parent().attr('hidden', data.isDelete ? '' : null);
-        components.get('topic/restore').toggleClass('hidden', !data.isDelete).parent().attr('hidden', !data.isDelete ? '' : null);
-        components.get('topic/purge').toggleClass('hidden', !data.isDelete).parent().attr('hidden', !data.isDelete ? '' : null);
-        components.get('topic/deleted/message').toggleClass('hidden', !data.isDelete);
+		components.get('topic/delete').toggleClass('hidden', data.isDelete).parent().attr('hidden', data.isDelete ? '' : null);
+		components.get('topic/restore').toggleClass('hidden', !data.isDelete).parent().attr('hidden', data.isDelete ? null : '');
+		components.get('topic/purge').toggleClass('hidden', !data.isDelete).parent().attr('hidden', data.isDelete ? null : '');
+		components.get('topic/deleted/message').toggleClass('hidden', !data.isDelete);
 
-        if (data.isDelete) {
-            app.parseAndTranslate('partials/topic/deleted-message', {
-                deleter: data.user,
-                deleted: true,
-                deletedTimestampISO: utils.toISOString(Date.now()),
-            }, function (html) {
-                components.get('topic/deleted/message').replaceWith(html);
-                html.find('.timeago').timeago();
-            });
-        }
-        const hideReply = data.isDelete && !ajaxify.data.privileges.isAdminOrMod;
+		if (data.isDelete) {
+			app.parseAndTranslate('partials/topic/deleted-message', {
+				deleter: data.user,
+				deleted: true,
+				deletedTimestampISO: utils.toISOString(Date.now()),
+			}, html => {
+				components.get('topic/deleted/message').replaceWith(html);
+				html.find('.timeago').timeago();
+			});
+		}
 
-        components.get('topic/reply/container').toggleClass('hidden', hideReply);
-        components.get('topic/reply/locked').toggleClass('hidden', ajaxify.data.privileges.isAdminOrMod || !ajaxify.data.locked || data.isDelete);
-        threadEl.find('[component="post"]:not(.deleted) [component="post/reply"], [component="post"]:not(.deleted) [component="post/quote"]').toggleClass('hidden', hideReply);
+		const hideReply = data.isDelete && !ajaxify.data.privileges.isAdminOrMod;
 
-        threadEl.toggleClass('deleted', data.isDelete);
-        ajaxify.data.deleted = data.isDelete ? 1 : 0;
+		components.get('topic/reply/container').toggleClass('hidden', hideReply);
+		components.get('topic/reply/locked').toggleClass('hidden', ajaxify.data.privileges.isAdminOrMod || !ajaxify.data.locked || data.isDelete);
+		threadElement.find('[component="post"]:not(.deleted) [component="post/reply"], [component="post"]:not(.deleted) [component="post/quote"]').toggleClass('hidden', hideReply);
 
-        posts.addTopicEvents(data.events);
-    };
+		threadElement.toggleClass('deleted', data.isDelete);
+		ajaxify.data.deleted = data.isDelete ? 1 : 0;
 
+		posts.addTopicEvents(data.events);
+	};
 
-    ThreadTools.setPinnedState = function (data) {
-        const threadEl = components.get('topic');
-        if (parseInt(data.tid, 10) !== parseInt(threadEl.attr('data-tid'), 10)) {
-            return;
-        }
+	ThreadTools.setPinnedState = function (data) {
+		const threadElement = components.get('topic');
+		if (Number.parseInt(data.tid, 10) !== Number.parseInt(threadElement.attr('data-tid'), 10)) {
+			return;
+		}
 
-        components.get('topic/pin').toggleClass('hidden', data.pinned).parent().attr('hidden', data.pinned ? '' : null);
-        components.get('topic/unpin').toggleClass('hidden', !data.pinned).parent().attr('hidden', !data.pinned ? '' : null);
-        const icon = $('[component="topic/labels"] [component="topic/pinned"]');
-        icon.toggleClass('hidden', !data.pinned);
-        if (data.pinned) {
-            icon.translateAttr('title', (
-                data.pinExpiry && data.pinExpiryISO ?
-                    '[[topic:pinned-with-expiry, ' + data.pinExpiryISO + ']]' :
-                    '[[topic:pinned]]'
-            ));
-        }
-        ajaxify.data.pinned = data.pinned;
+		components.get('topic/pin').toggleClass('hidden', data.pinned).parent().attr('hidden', data.pinned ? '' : null);
+		components.get('topic/unpin').toggleClass('hidden', !data.pinned).parent().attr('hidden', data.pinned ? null : '');
+		const icon = $('[component="topic/labels"] [component="topic/pinned"]');
+		icon.toggleClass('hidden', !data.pinned);
+		if (data.pinned) {
+			icon.translateAttr('title', (
+				data.pinExpiry && data.pinExpiryISO
+					? '[[topic:pinned-with-expiry, ' + data.pinExpiryISO + ']]'
+					: '[[topic:pinned]]'
+			));
+		}
 
-        posts.addTopicEvents(data.events);
-    };
+		ajaxify.data.pinned = data.pinned;
 
-    function setFollowState(state) {
-        const titles = {
-            follow: '[[topic:watching]]',
-            unfollow: '[[topic:not-watching]]',
-            ignore: '[[topic:ignoring]]',
-        };
-        translator.translate(titles[state], function (translatedTitle) {
-            $('[component="topic/watch"] button')
-                .attr('title', translatedTitle)
-                .tooltip('fixTitle');
-        });
+		posts.addTopicEvents(data.events);
+	};
 
-        let menu = components.get('topic/following/menu');
-        menu.toggleClass('hidden', state !== 'follow');
-        components.get('topic/following/check').toggleClass('fa-check', state === 'follow');
+	function setFollowState(state) {
+		const titles = {
+			follow: '[[topic:watching]]',
+			unfollow: '[[topic:not-watching]]',
+			ignore: '[[topic:ignoring]]',
+		};
+		translator.translate(titles[state], translatedTitle => {
+			$('[component="topic/watch"] button')
+				.attr('title', translatedTitle)
+				.tooltip('fixTitle');
+		});
 
-        menu = components.get('topic/not-following/menu');
-        menu.toggleClass('hidden', state !== 'unfollow');
-        components.get('topic/not-following/check').toggleClass('fa-check', state === 'unfollow');
+		let menu = components.get('topic/following/menu');
+		menu.toggleClass('hidden', state !== 'follow');
+		components.get('topic/following/check').toggleClass('fa-check', state === 'follow');
 
-        menu = components.get('topic/ignoring/menu');
-        menu.toggleClass('hidden', state !== 'ignore');
-        components.get('topic/ignoring/check').toggleClass('fa-check', state === 'ignore');
-    }
+		menu = components.get('topic/not-following/menu');
+		menu.toggleClass('hidden', state !== 'unfollow');
+		components.get('topic/not-following/check').toggleClass('fa-check', state === 'unfollow');
 
+		menu = components.get('topic/ignoring/menu');
+		menu.toggleClass('hidden', state !== 'ignore');
+		components.get('topic/ignoring/check').toggleClass('fa-check', state === 'ignore');
+	}
 
-    return ThreadTools;
+	return ThreadTools;
 });

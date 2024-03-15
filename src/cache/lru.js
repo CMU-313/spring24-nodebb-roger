@@ -2,40 +2,40 @@
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-// import LRU from 'lru-cache';
+// Import LRU from 'lru-cache';
 const lru_cache_1 = __importDefault(require("lru-cache"));
-// lru-cache@7 deprecations
+// Lru-cache@7 deprecations
 const winston_1 = __importDefault(require("winston"));
 const chalk_1 = __importDefault(require("chalk"));
-// pubsub import should occur after import of chalk
+// Pubsub import should occur after import of chalk
 const pubsub_1 = __importDefault(require("../pubsub"));
-function cacheCreate(opts) {
-    // sometimes we kept passing in `length` with no corresponding `maxSize`.
+function cacheCreate(options) {
+    // Sometimes we kept passing in `length` with no corresponding `maxSize`.
     // This is now enforced in v7; drop superfluous property
-    if (opts.hasOwnProperty('length') && !opts.hasOwnProperty('maxSize')) {
-        winston_1.default.warn(`[cache/init(${opts.name})] ${chalk_1.default.white.bgRed.bold('DEPRECATION')} ${chalk_1.default.yellow('length')} was passed in without a corresponding ${chalk_1.default.yellow('maxSize')}. Both are now required as of lru-cache@7.0.0.`);
-        delete opts.length;
+    if (options.hasOwnProperty('length') && !options.hasOwnProperty('maxSize')) {
+        winston_1.default.warn(`[cache/init(${options.name})] ${chalk_1.default.white.bgRed.bold('DEPRECATION')} ${chalk_1.default.yellow('length')} was passed in without a corresponding ${chalk_1.default.yellow('maxSize')}. Both are now required as of lru-cache@7.0.0.`);
+        delete options.length;
     }
     const deprecations = new Map([
         ['stale', 'allowStale'],
         ['maxAge', 'ttl'],
         ['length', 'sizeCalculation'],
     ]);
-    deprecations.forEach((newProp, oldProp) => {
-        if (opts.hasOwnProperty(oldProp) && !opts.hasOwnProperty(newProp)) {
-            winston_1.default.warn(`[cache/init(${opts.name})] ${chalk_1.default.white.bgRed.bold('DEPRECATION')} The option ${chalk_1.default.yellow(oldProp)} has been deprecated as of lru-cache@7.0.0. Please change this to ${chalk_1.default.yellow(newProp)} instead.`);
+    for (const [oldProperty, newProperty] of deprecations.entries()) {
+        if (options.hasOwnProperty(oldProperty) && !options.hasOwnProperty(newProperty)) {
+            winston_1.default.warn(`[cache/init(${options.name})] ${chalk_1.default.white.bgRed.bold('DEPRECATION')} The option ${chalk_1.default.yellow(oldProperty)} has been deprecated as of lru-cache@7.0.0. Please change this to ${chalk_1.default.yellow(newProperty)} instead.`);
             /* Can pull the types of stale, maxAge, and length from the lru-cache documentation */
-            opts[newProp] = opts[oldProp];
-            delete opts[oldProp];
+            options[newProperty] = options[oldProperty];
+            delete options[oldProperty];
         }
-    });
-    const lruCache = new lru_cache_1.default(opts);
+    }
+    const lruCache = new lru_cache_1.default(options);
     const cache = {};
-    cache.name = opts.name;
+    cache.name = options.name;
     cache.hits = 0;
     cache.misses = 0;
-    cache.enabled = opts.hasOwnProperty('enabled') ? opts.enabled : true;
-    // expose properties while keeping backwards compatibility
+    cache.enabled = options.hasOwnProperty('enabled') ? options.enabled : true;
+    // Expose properties while keeping backwards compatibility
     const propertyMap = new Map([
         ['length', 'calculatedSize'],
         ['calculatedSize', 'calculatedSize'],
@@ -45,21 +45,21 @@ function cacheCreate(opts) {
         ['size', 'size'],
         ['ttl', 'ttl'],
     ]);
-    propertyMap.forEach((lruProp, cacheProp) => {
-        Object.defineProperty(cache, cacheProp, {
-            get: function () {
-                return lruCache[lruProp];
+    for (const [cacheProperty, lruProperty] of propertyMap.entries()) {
+        Object.defineProperty(cache, cacheProperty, {
+            get() {
+                return lruCache[lruProperty];
             },
             configurable: true,
             enumerable: true,
         });
-    });
+    }
     cache.set = function (key, value, ttl) {
         if (!cache.enabled) {
             return;
         }
-        const opts = ttl ? { ttl: ttl } : {};
-        lruCache.set.apply(lruCache, [key, value, opts]);
+        const options = ttl ? { ttl } : {};
+        lruCache.set.apply(lruCache, [key, value, options]);
     };
     cache.get = function (key) {
         if (!cache.enabled) {
@@ -79,7 +79,9 @@ function cacheCreate(opts) {
             keys = [keys];
         }
         pubsub_1.default.publish(`${cache.name}:lruCache:del`, keys);
-        keys.forEach(key => lruCache.delete(key));
+        for (const key of keys) {
+            lruCache.delete(key);
+        }
     };
     cache.delete = cache.del;
     function localReset() {
@@ -97,7 +99,9 @@ function cacheCreate(opts) {
     });
     pubsub_1.default.on(`${cache.name}:lruCache:del`, (keys) => {
         if (Array.isArray(keys)) {
-            keys.forEach(key => lruCache.delete(key));
+            for (const key of keys) {
+                lruCache.delete(key);
+            }
         }
     });
     cache.getUnCachedKeys = function (keys, cachedData) {
@@ -106,7 +110,7 @@ function cacheCreate(opts) {
         }
         let data;
         let isCached;
-        const unCachedKeys = keys.filter((key) => {
+        const unCachedKeys = keys.filter(key => {
             data = cache.get(key);
             isCached = data !== undefined;
             if (isCached) {
