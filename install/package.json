@@ -14,7 +14,8 @@
         "lint": "npx tsc && eslint --cache ./nodebb .",
         "test": "npx tsc && nyc --reporter=html --reporter=text-summary mocha",
         "coverage": "nyc report --reporter=text-lcov > ./coverage/lcov.info",
-        "coveralls": "nyc report --reporter=text-lcov | coveralls && rm -r coverage"
+        "coveralls": "nyc report --reporter=text-lcov | coveralls && rm -r coverage",
+        "xo": "npx xo"
     },
     "nyc": {
         "exclude": [
@@ -141,6 +142,7 @@
         "webpack-merge": "5.8.0",
         "winston": "3.8.2",
         "xml": "1.0.1",
+        "xo": "*",
         "xregexp": "5.1.1",
         "yargs": "17.6.2",
         "zxcvbn": "4.4.2"

@@ -1,122 +1,138 @@
 'use strict';
 
-
 define('forum/users', [
-    'translator', 'benchpress', 'api', 'alerts', 'accounts/invite',
-], function (translator, Benchpress, api, alerts, AccountInvite) {
-    const Users = {};
+	'translator', 'benchpress', 'api', 'alerts', 'accounts/invite',
+], (translator, Benchpress, api, alerts, AccountInvite) => {
+	const Users = {};
 
-    let searchResultCount = 0;
+	let searchResultCount = 0;
 
-    Users.init = function () {
-        app.enterRoom('user_list');
+	Users.init = function () {
+		app.enterRoom('user_list');
 
-        const section = utils.param('section') ? ('?section=' + utils.param('section')) : '';
-        $('.nav-pills li').removeClass('active').find('a[href="' + window.location.pathname + section + '"]').parent()
-            .addClass('active');
+		const section = utils.param('section') ? ('?section=' + utils.param('section')) : '';
+		$('.nav-pills li').removeClass('active').find('a[href="' + window.location.pathname + section + '"]').parent()
+			.addClass('active');
 
-        Users.handleSearch();
+		Users.handleSearch();
 
-        AccountInvite.handle();
+		AccountInvite.handle();
 
-        socket.removeListener('event:user_status_change', onUserStatusChange);
-        socket.on('event:user_status_change', onUserStatusChange);
-    };
+		socket.removeListener('event:user_status_change', onUserStatusChange);
+		socket.on('event:user_status_change', onUserStatusChange);
+	};
 
-    Users.handleSearch = function (params) {
-        searchResultCount = params && params.resultCount;
-        $('#search-user').on('keyup', utils.debounce(doSearch, 250));
-        $('.search select, .search input[type="checkbox"]').on('change', doSearch);
-    };
+	Users.handleSearch = function (parameters) {
+		searchResultCount = parameters && parameters.resultCount;
+		$('#search-user').on('keyup', utils.debounce(doSearch, 250));
+		$('.search select, .search input[type="checkbox"]').on('change', doSearch);
+	};
 
-    function doSearch() {
-        if (!ajaxify.data.template.users) {
-            return;
-        }
-        $('[component="user/search/icon"]').removeClass('fa-search').addClass('fa-spinner fa-spin');
-        const username = $('#search-user').val();
-        const activeSection = getActiveSection();
+	function doSearch() {
+		if (!ajaxify.data.template.users) {
+			return;
+		}
 
-        const query = {
-            section: activeSection,
-            page: 1,
-        };
+		$('[component="user/search/icon"]').removeClass('fa-search').addClass('fa-spinner fa-spin');
+		const username = $('#search-user').val();
+		const activeSection = getActiveSection();
 
-        if (!username) {
-            return loadPage(query);
-        }
+		const query = {
+			section: activeSection,
+			page: 1,
+		};
 
-        query.query = username;
-        query.sortBy = getSortBy();
-        const filters = [];
-        if ($('.search .online-only').is(':checked') || (activeSection === 'online')) {
-            filters.push('online');
-        }
-        if (activeSection === 'banned') {
-            filters.push('banned');
-        }
-        if (activeSection === 'flagged') {
-            filters.push('flagged');
-        }
-        if (filters.length) {
-            query.filters = filters;
-        }
+		if (!username) {
+			return loadPage(query);
+		}
 
-        loadPage(query);
-    }
+		query.query = username;
+		query.sortBy = getSortBy();
+		const filters = [];
+		if ($('.search .online-only').is(':checked') || (activeSection === 'online')) {
+			filters.push('online');
+		}
 
-    function getSortBy() {
-        let sortBy;
-        const activeSection = getActiveSection();
-        if (activeSection === 'sort-posts') {
-            sortBy = 'postcount';
-        } else if (activeSection === 'sort-reputation') {
-            sortBy = 'reputation';
-        } else if (activeSection === 'users') {
-            sortBy = 'joindate';
-        }
-        return sortBy;
-    }
+		if (activeSection === 'banned') {
+			filters.push('banned');
+		}
 
+		if (activeSection === 'flagged') {
+			filters.push('flagged');
+		}
 
-    function loadPage(query) {
-        api.get('/api/users', query)
-            .then(renderSearchResults)
-            .catch(alerts.error);
-    }
+		if (filters.length > 0) {
+			query.filters = filters;
+		}
 
-    function renderSearchResults(data) {
-        Benchpress.render('partials/paginator', { pagination: data.pagination }).then(function (html) {
-            $('.pagination-container').replaceWith(html);
-        });
+		loadPage(query);
+	}
 
-        if (searchResultCount) {
-            data.users = data.users.slice(0, searchResultCount);
-        }
+	function getSortBy() {
+		let sortBy;
+		const activeSection = getActiveSection();
+		switch (activeSection) {
+			case 'sort-posts': {
+				sortBy = 'postcount';
 
-        data.isAdminOrGlobalMod = app.user.isAdmin || app.user.isGlobalMod;
-        app.parseAndTranslate('users', 'users', data, function (html) {
-            $('#users-container').html(html);
-            html.find('span.timeago').timeago();
-            $('[component="user/search/icon"]').addClass('fa-search').removeClass('fa-spinner fa-spin');
-        });
-    }
+				break;
+			}
 
-    function onUserStatusChange(data) {
-        const section = getActiveSection();
+			case 'sort-reputation': {
+				sortBy = 'reputation';
 
-        if ((section.startsWith('online') || section.startsWith('users'))) {
-            updateUser(data);
-        }
-    }
+				break;
+			}
 
-    function updateUser(data) {
-        app.updateUserStatus($('#users-container [data-uid="' + data.uid + '"] [component="user/status"]'), data.status);
-    }
+			case 'users': {
+				sortBy = 'joindate';
 
-    function getActiveSection() {
-        return utils.param('section') || '';
-    }
+				break;
+			}
+		// No default
+		}
 
-    return Users;
+		return sortBy;
+	}
+
+	function loadPage(query) {
+		api.get('/api/users', query)
+			.then(renderSearchResults)
+			.catch(alerts.error);
+	}
+
+	function renderSearchResults(data) {
+		Benchpress.render('partials/paginator', {pagination: data.pagination}).then(html => {
+			$('.pagination-container').replaceWith(html);
+		});
+
+		if (searchResultCount) {
+			data.users = data.users.slice(0, searchResultCount);
+		}
+
+		data.isAdminOrGlobalMod = app.user.isAdmin || app.user.isGlobalMod;
+		app.parseAndTranslate('users', 'users', data, html => {
+			$('#users-container').html(html);
+			html.find('span.timeago').timeago();
+			$('[component="user/search/icon"]').addClass('fa-search').removeClass('fa-spinner fa-spin');
+		});
+	}
+
+	function onUserStatusChange(data) {
+		const section = getActiveSection();
+
+		if ((section.startsWith('online') || section.startsWith('users'))) {
+			updateUser(data);
+		}
+	}
+
+	function updateUser(data) {
+		app.updateUserStatus($('#users-container [data-uid="' + data.uid + '"] [component="user/status"]'), data.status);
+	}
+
+	function getActiveSection() {
+		return utils.param('section') || '';
+	}
+
+	return Users;
 });

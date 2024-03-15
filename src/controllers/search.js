@@ -2,7 +2,6 @@
 'use strict';
 
 const validator = require('validator');
-
 const db = require('../database');
 const meta = require('../meta');
 const plugins = require('../plugins');
@@ -15,132 +14,135 @@ const helpers = require('./helpers');
 
 const searchController = module.exports;
 
-searchController.search = async function (req, res, next) {
-    if (!plugins.hooks.hasListeners('filter:search.query')) {
-        return next();
-    }
-    const page = Math.max(1, parseInt(req.query.page, 10)) || 1;
+searchController.search = async function (request, res, next) {
+	if (!plugins.hooks.hasListeners('filter:search.query')) {
+		return next();
+	}
 
-    const searchOnly = parseInt(req.query.searchOnly, 10) === 1;
+	const page = Math.max(1, Number.parseInt(request.query.page, 10)) || 1;
 
-    const userPrivileges = await utils.promiseParallel({
-        'search:users': privileges.global.can('search:users', req.uid),
-        'search:content': privileges.global.can('search:content', req.uid),
-        'search:tags': privileges.global.can('search:tags', req.uid),
-    });
-    req.query.in = req.query.in || meta.config.searchDefaultIn || 'titlesposts';
-    let allowed = (req.query.in === 'users' && userPrivileges['search:users']) ||
-                    (req.query.in === 'tags' && userPrivileges['search:tags']) ||
-                    (req.query.in === 'categories') ||
-                    (['titles', 'titlesposts', 'posts'].includes(req.query.in) && userPrivileges['search:content']);
-    ({ allowed } = await plugins.hooks.fire('filter:search.isAllowed', {
-        uid: req.uid,
-        query: req.query,
-        allowed,
-    }));
-    if (!allowed) {
-        return helpers.notAllowed(req, res);
-    }
+	const searchOnly = Number.parseInt(request.query.searchOnly, 10) === 1;
 
-    if (req.query.categories && !Array.isArray(req.query.categories)) {
-        req.query.categories = [req.query.categories];
-    }
-    if (req.query.hasTags && !Array.isArray(req.query.hasTags)) {
-        req.query.hasTags = [req.query.hasTags];
-    }
+	const userPrivileges = await utils.promiseParallel({
+		'search:users': privileges.global.can('search:users', request.uid),
+		'search:content': privileges.global.can('search:content', request.uid),
+		'search:tags': privileges.global.can('search:tags', request.uid),
+	});
+	request.query.in = request.query.in || meta.config.searchDefaultIn || 'titlesposts';
+	let allowed = (request.query.in === 'users' && userPrivileges['search:users'])
+                    || (request.query.in === 'tags' && userPrivileges['search:tags'])
+                    || (request.query.in === 'categories')
+                    || (['titles', 'titlesposts', 'posts'].includes(request.query.in) && userPrivileges['search:content']);
+	({allowed} = await plugins.hooks.fire('filter:search.isAllowed', {
+		uid: request.uid,
+		query: request.query,
+		allowed,
+	}));
+	if (!allowed) {
+		return helpers.notAllowed(request, res);
+	}
 
-    const data = {
-        query: req.query.term,
-        searchIn: req.query.in,
-        matchWords: req.query.matchWords || 'all',
-        postedBy: req.query.by,
-        categories: req.query.categories,
-        searchChildren: req.query.searchChildren,
-        hasTags: req.query.hasTags,
-        replies: req.query.replies,
-        repliesFilter: req.query.repliesFilter,
-        topicName: req.query.topicName,
-        timeRange: req.query.timeRange,
-        timeFilter: req.query.timeFilter,
-        sortBy: req.query.sortBy || meta.config.searchDefaultSortBy || '',
-        sortDirection: req.query.sortDirection,
-        page: page,
-        itemsPerPage: req.query.itemsPerPage,
-        uid: req.uid,
-        qs: req.query,
-    };
+	if (request.query.categories && !Array.isArray(request.query.categories)) {
+		request.query.categories = [request.query.categories];
+	}
 
-    const [searchData, categoriesData] = await Promise.all([
-        search.search(data),
-        buildCategories(req.uid, searchOnly),
-        recordSearch(data),
-    ]);
+	if (request.query.hasTags && !Array.isArray(request.query.hasTags)) {
+		request.query.hasTags = [request.query.hasTags];
+	}
 
-    searchData.pagination = pagination.create(page, searchData.pageCount, req.query);
-    searchData.multiplePages = searchData.pageCount > 1;
-    searchData.search_query = validator.escape(String(req.query.term || ''));
-    searchData.term = req.query.term;
+	const data = {
+		query: request.query.term,
+		searchIn: request.query.in,
+		matchWords: request.query.matchWords || 'all',
+		postedBy: request.query.by,
+		categories: request.query.categories,
+		searchChildren: request.query.searchChildren,
+		hasTags: request.query.hasTags,
+		replies: request.query.replies,
+		repliesFilter: request.query.repliesFilter,
+		topicName: request.query.topicName,
+		timeRange: request.query.timeRange,
+		timeFilter: request.query.timeFilter,
+		sortBy: request.query.sortBy || meta.config.searchDefaultSortBy || '',
+		sortDirection: request.query.sortDirection,
+		page,
+		itemsPerPage: request.query.itemsPerPage,
+		uid: request.uid,
+		qs: request.query,
+	};
 
-    if (searchOnly) {
-        return res.json(searchData);
-    }
+	const [searchData, categoriesData] = await Promise.all([
+		search.search(data),
+		buildCategories(request.uid, searchOnly),
+		recordSearch(data),
+	]);
 
-    searchData.allCategories = categoriesData;
-    searchData.allCategoriesCount = Math.max(10, Math.min(20, categoriesData.length));
+	searchData.pagination = pagination.create(page, searchData.pageCount, request.query);
+	searchData.multiplePages = searchData.pageCount > 1;
+	searchData.search_query = validator.escape(String(request.query.term || ''));
+	searchData.term = request.query.term;
 
-    searchData.breadcrumbs = helpers.buildBreadcrumbs([{ text: '[[global:search]]' }]);
-    searchData.expandSearch = !req.query.term;
+	if (searchOnly) {
+		return res.json(searchData);
+	}
 
-    searchData.showAsPosts = !req.query.showAs || req.query.showAs === 'posts';
-    searchData.showAsTopics = req.query.showAs === 'topics';
-    searchData.title = '[[global:header.search]]';
+	searchData.allCategories = categoriesData;
+	searchData.allCategoriesCount = Math.max(10, Math.min(20, categoriesData.length));
 
-    searchData.searchDefaultSortBy = meta.config.searchDefaultSortBy || '';
-    searchData.searchDefaultIn = meta.config.searchDefaultIn || 'titlesposts';
-    searchData.privileges = userPrivileges;
+	searchData.breadcrumbs = helpers.buildBreadcrumbs([{text: '[[global:search]]'}]);
+	searchData.expandSearch = !request.query.term;
 
-    res.render('search', searchData);
+	searchData.showAsPosts = !request.query.showAs || request.query.showAs === 'posts';
+	searchData.showAsTopics = request.query.showAs === 'topics';
+	searchData.title = '[[global:header.search]]';
+
+	searchData.searchDefaultSortBy = meta.config.searchDefaultSortBy || '';
+	searchData.searchDefaultIn = meta.config.searchDefaultIn || 'titlesposts';
+	searchData.privileges = userPrivileges;
+
+	res.render('search', searchData);
 };
 
 const searches = {};
 
 async function recordSearch(data) {
-    const { query, searchIn } = data;
-    if (query) {
-        const cleanedQuery = String(query).trim().toLowerCase().slice(0, 255);
-        if (['titles', 'titlesposts', 'posts'].includes(searchIn) && cleanedQuery.length > 2) {
-            searches[data.uid] = searches[data.uid] || { timeoutId: 0, queries: [] };
-            searches[data.uid].queries.push(cleanedQuery);
-            if (searches[data.uid].timeoutId) {
-                clearTimeout(searches[data.uid].timeoutId);
-            }
-            searches[data.uid].timeoutId = setTimeout(async () => {
-                if (searches[data.uid] && searches[data.uid].queries) {
-                    const copy = searches[data.uid].queries.slice();
-                    const filtered = searches[data.uid].queries.filter(
-                        q => !copy.find(query => query.startsWith(q) && query.length > q.length)
-                    );
-                    delete searches[data.uid];
-                    await Promise.all(filtered.map(query => db.sortedSetIncrBy('searches:all', 1, query)));
-                }
-            }, 5000);
-        }
-    }
+	const {query, searchIn} = data;
+	if (query) {
+		const cleanedQuery = String(query).trim().toLowerCase().slice(0, 255);
+		if (['titles', 'titlesposts', 'posts'].includes(searchIn) && cleanedQuery.length > 2) {
+			searches[data.uid] = searches[data.uid] || {timeoutId: 0, queries: []};
+			searches[data.uid].queries.push(cleanedQuery);
+			if (searches[data.uid].timeoutId) {
+				clearTimeout(searches[data.uid].timeoutId);
+			}
+
+			searches[data.uid].timeoutId = setTimeout(async () => {
+				if (searches[data.uid] && searches[data.uid].queries) {
+					const copy = searches[data.uid].queries.slice();
+					const filtered = searches[data.uid].queries.filter(
+						q => !copy.find(query => query.startsWith(q) && query.length > q.length),
+					);
+					delete searches[data.uid];
+					await Promise.all(filtered.map(query => db.sortedSetIncrBy('searches:all', 1, query)));
+				}
+			}, 5000);
+		}
+	}
 }
 
 async function buildCategories(uid, searchOnly) {
-    if (searchOnly) {
-        return [];
-    }
+	if (searchOnly) {
+		return [];
+	}
 
-    const cids = await categories.getCidsByPrivilege('categories:cid', uid, 'read');
-    let categoriesData = await categories.getCategoriesData(cids);
-    categoriesData = categoriesData.filter(category => category && !category.link);
-    categoriesData = categories.getTree(categoriesData);
-    categoriesData = categories.buildForSelectCategories(categoriesData, ['text', 'value']);
+	const cids = await categories.getCidsByPrivilege('categories:cid', uid, 'read');
+	let categoriesData = await categories.getCategoriesData(cids);
+	categoriesData = categoriesData.filter(category => category && !category.link);
+	categoriesData = categories.getTree(categoriesData);
+	categoriesData = categories.buildForSelectCategories(categoriesData, ['text', 'value']);
 
-    return [
-        { value: 'all', text: '[[unread:all_categories]]' },
-        { value: 'watched', text: '[[category:watched-categories]]' },
-    ].concat(categoriesData);
+	return [
+		{value: 'all', text: '[[unread:all_categories]]'},
+		{value: 'watched', text: '[[category:watched-categories]]'},
+	].concat(categoriesData);
 }

@@ -1,56 +1,57 @@
 'use strict';
 
-define('forum/header/chat', ['components'], function (components) {
-    const chat = {};
+define('forum/header/chat', ['components'], components => {
+	const chat = {};
 
-    chat.prepareDOM = function () {
-        const chatsToggleEl = components.get('chat/dropdown');
-        const chatsListEl = components.get('chat/list');
+	chat.prepareDOM = function () {
+		const chatsToggleElement = components.get('chat/dropdown');
+		const chatsListElement = components.get('chat/list');
 
-        chatsToggleEl.on('click', function () {
-            if (chatsToggleEl.parent().hasClass('open')) {
-                return;
-            }
-            requireAndCall('loadChatsDropdown', chatsListEl);
-        });
+		chatsToggleElement.on('click', () => {
+			if (chatsToggleElement.parent().hasClass('open')) {
+				return;
+			}
 
-        if (chatsToggleEl.parents('.dropdown').hasClass('open')) {
-            requireAndCall('loadChatsDropdown', chatsListEl);
-        }
+			requireAndCall('loadChatsDropdown', chatsListElement);
+		});
 
-        socket.removeListener('event:chats.receive', onChatMessageReceived);
-        socket.on('event:chats.receive', onChatMessageReceived);
+		if (chatsToggleElement.parents('.dropdown').hasClass('open')) {
+			requireAndCall('loadChatsDropdown', chatsListElement);
+		}
 
-        socket.removeListener('event:user_status_change', onUserStatusChange);
-        socket.on('event:user_status_change', onUserStatusChange);
+		socket.removeListener('event:chats.receive', onChatMessageReceived);
+		socket.on('event:chats.receive', onChatMessageReceived);
 
-        socket.removeListener('event:chats.roomRename', onRoomRename);
-        socket.on('event:chats.roomRename', onRoomRename);
+		socket.removeListener('event:user_status_change', onUserStatusChange);
+		socket.on('event:user_status_change', onUserStatusChange);
 
-        socket.on('event:unread.updateChatCount', function (count) {
-            components.get('chat/icon')
-                .toggleClass('unread-count', count > 0)
-                .attr('data-content', count > 99 ? '99+' : count);
-        });
-    };
+		socket.removeListener('event:chats.roomRename', onRoomRename);
+		socket.on('event:chats.roomRename', onRoomRename);
 
-    function onChatMessageReceived(data) {
-        requireAndCall('onChatMessageReceived', data);
-    }
+		socket.on('event:unread.updateChatCount', count => {
+			components.get('chat/icon')
+				.toggleClass('unread-count', count > 0)
+				.attr('data-content', count > 99 ? '99+' : count);
+		});
+	};
 
-    function onUserStatusChange(data) {
-        requireAndCall('onUserStatusChange', data);
-    }
+	function onChatMessageReceived(data) {
+		requireAndCall('onChatMessageReceived', data);
+	}
 
-    function onRoomRename(data) {
-        requireAndCall('onRoomRename', data);
-    }
+	function onUserStatusChange(data) {
+		requireAndCall('onUserStatusChange', data);
+	}
 
-    function requireAndCall(method, param) {
-        require(['chat'], function (chat) {
-            chat[method](param);
-        });
-    }
+	function onRoomRename(data) {
+		requireAndCall('onRoomRename', data);
+	}
 
-    return chat;
+	function requireAndCall(method, parameter) {
+		require(['chat'], chat => {
+			chat[method](parameter);
+		});
+	}
+
+	return chat;
 });

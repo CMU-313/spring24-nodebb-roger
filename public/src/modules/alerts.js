@@ -1,155 +1,157 @@
 'use strict';
 
+define('alerts', ['translator', 'components', 'hooks'], (translator, components, hooks) => {
+	const module = {};
 
-define('alerts', ['translator', 'components', 'hooks'], function (translator, components, hooks) {
-    const module = {};
+	module.alert = function (parameters) {
+		parameters.alert_id = 'alert_button_' + (parameters.alert_id ? parameters.alert_id : Date.now());
+		parameters.title = parameters.title ? parameters.title.trim() || '' : '';
+		parameters.message = parameters.message ? parameters.message.trim() : '';
+		parameters.type = parameters.type || 'info';
 
-    module.alert = function (params) {
-        params.alert_id = 'alert_button_' + (params.alert_id ? params.alert_id : new Date().getTime());
-        params.title = params.title ? params.title.trim() || '' : '';
-        params.message = params.message ? params.message.trim() : '';
-        params.type = params.type || 'info';
+		const alert = $('#' + parameters.alert_id);
+		if (alert.length > 0) {
+			updateAlert(alert, parameters);
+		} else {
+			createNew(parameters);
+		}
+	};
 
-        const alert = $('#' + params.alert_id);
-        if (alert.length) {
-            updateAlert(alert, params);
-        } else {
-            createNew(params);
-        }
-    };
+	module.success = function (message, timeout) {
+		module.alert({
+			alert_id: utils.generateUUID(),
+			title: '[[global:alert.success]]',
+			message,
+			type: 'success',
+			timeout: timeout || 5000,
+		});
+	};
 
-    module.success = function (message, timeout) {
-        module.alert({
-            alert_id: utils.generateUUID(),
-            title: '[[global:alert.success]]',
-            message: message,
-            type: 'success',
-            timeout: timeout || 5000,
-        });
-    };
+	module.error = function (message, timeout) {
+		message = (message && message.message) || message;
 
-    module.error = function (message, timeout) {
-        message = (message && message.message) || message;
+		if (message === '[[error:revalidate-failure]]') {
+			socket.disconnect();
+			app.reconnect();
+			return;
+		}
 
-        if (message === '[[error:revalidate-failure]]') {
-            socket.disconnect();
-            app.reconnect();
-            return;
-        }
+		module.alert({
+			alert_id: utils.generateUUID(),
+			title: '[[global:alert.error]]',
+			message,
+			type: 'danger',
+			timeout: timeout || 10_000,
+		});
+	};
 
-        module.alert({
-            alert_id: utils.generateUUID(),
-            title: '[[global:alert.error]]',
-            message: message,
-            type: 'danger',
-            timeout: timeout || 10000,
-        });
-    };
+	module.remove = function (id) {
+		$('#alert_button_' + id).remove();
+	};
 
-    module.remove = function (id) {
-        $('#alert_button_' + id).remove();
-    };
+	function createNew(parameters) {
+		app.parseAndTranslate('alert', parameters, html => {
+			let alert = $('#' + parameters.alert_id);
+			if (alert.length > 0) {
+				return updateAlert(alert, parameters);
+			}
 
-    function createNew(params) {
-        app.parseAndTranslate('alert', params, function (html) {
-            let alert = $('#' + params.alert_id);
-            if (alert.length) {
-                return updateAlert(alert, params);
-            }
-            alert = html;
-            alert.fadeIn(200);
+			alert = html;
+			alert.fadeIn(200);
 
-            components.get('toaster/tray').prepend(alert);
+			components.get('toaster/tray').prepend(alert);
 
-            if (typeof params.closefn === 'function') {
-                alert.find('button').on('click', function () {
-                    params.closefn();
-                    fadeOut(alert);
-                    return false;
-                });
-            }
+			if (typeof parameters.closefn === 'function') {
+				alert.find('button').on('click', () => {
+					parameters.closefn();
+					fadeOut(alert);
+					return false;
+				});
+			}
 
-            if (params.timeout) {
-                startTimeout(alert, params);
-            }
+			if (parameters.timeout) {
+				startTimeout(alert, parameters);
+			}
 
-            if (typeof params.clickfn === 'function') {
-                alert
-                    .addClass('pointer')
-                    .on('click', function (e) {
-                        if (!$(e.target).is('.close')) {
-                            params.clickfn(alert, params);
-                        }
-                        fadeOut(alert);
-                    });
-            }
+			if (typeof parameters.clickfn === 'function') {
+				alert
+					.addClass('pointer')
+					.on('click', e => {
+						if (!$(e.target).is('.close')) {
+							parameters.clickfn(alert, parameters);
+						}
 
-            hooks.fire('action:alert.new', { alert, params });
-        });
-    }
+						fadeOut(alert);
+					});
+			}
 
-    function updateAlert(alert, params) {
-        alert.find('strong').translateHtml(params.title);
-        alert.find('p').translateHtml(params.message);
-        alert.attr('class', 'alert alert-dismissable alert-' + params.type + ' clearfix');
+			hooks.fire('action:alert.new', {alert, params: parameters});
+		});
+	}
 
-        clearTimeout(parseInt(alert.attr('timeoutId'), 10));
-        if (params.timeout) {
-            startTimeout(alert, params);
-        }
+	function updateAlert(alert, parameters) {
+		alert.find('strong').translateHtml(parameters.title);
+		alert.find('p').translateHtml(parameters.message);
+		alert.attr('class', 'alert alert-dismissable alert-' + parameters.type + ' clearfix');
 
-        hooks.fire('action:alert.update', { alert, params });
+		clearTimeout(Number.parseInt(alert.attr('timeoutId'), 10));
+		if (parameters.timeout) {
+			startTimeout(alert, parameters);
+		}
 
-        // Handle changes in the clickfn
-        alert.off('click').removeClass('pointer');
-        if (typeof params.clickfn === 'function') {
-            alert
-                .addClass('pointer')
-                .on('click', function (e) {
-                    if (!$(e.target).is('.close')) {
-                        params.clickfn();
-                    }
-                    fadeOut(alert);
-                });
-        }
-    }
+		hooks.fire('action:alert.update', {alert, params: parameters});
 
-    function fadeOut(alert) {
-        alert.fadeOut(500, function () {
-            $(this).remove();
-        });
-    }
+		// Handle changes in the clickfn
+		alert.off('click').removeClass('pointer');
+		if (typeof parameters.clickfn === 'function') {
+			alert
+				.addClass('pointer')
+				.on('click', e => {
+					if (!$(e.target).is('.close')) {
+						parameters.clickfn();
+					}
 
-    function startTimeout(alert, params) {
-        const timeout = params.timeout;
+					fadeOut(alert);
+				});
+		}
+	}
 
-        const timeoutId = setTimeout(function () {
-            fadeOut(alert);
+	function fadeOut(alert) {
+		alert.fadeOut(500, function () {
+			$(this).remove();
+		});
+	}
 
-            if (typeof params.timeoutfn === 'function') {
-                params.timeoutfn(alert, params);
-            }
-        }, timeout);
+	function startTimeout(alert, parameters) {
+		const timeout = parameters.timeout;
 
-        alert.attr('timeoutId', timeoutId);
+		const timeoutId = setTimeout(() => {
+			fadeOut(alert);
 
-        // Reset and start animation
-        alert.css('transition-property', 'none');
-        alert.removeClass('animate');
+			if (typeof parameters.timeoutfn === 'function') {
+				parameters.timeoutfn(alert, parameters);
+			}
+		}, timeout);
 
-        setTimeout(function () {
-            alert.css('transition-property', '');
-            alert.css('transition', 'width ' + (timeout + 450) + 'ms linear, background-color ' + (timeout + 450) + 'ms ease-in');
-            alert.addClass('animate');
-            hooks.fire('action:alert.animate', { alert, params });
-        }, 50);
+		alert.attr('timeoutId', timeoutId);
 
-        // Handle mouseenter/mouseleave
-        alert
-            .on('mouseenter', function () {
-                $(this).css('transition-duration', 0);
-            });
-    }
+		// Reset and start animation
+		alert.css('transition-property', 'none');
+		alert.removeClass('animate');
 
-    return module;
+		setTimeout(() => {
+			alert.css('transition-property', '');
+			alert.css('transition', 'width ' + (timeout + 450) + 'ms linear, background-color ' + (timeout + 450) + 'ms ease-in');
+			alert.addClass('animate');
+			hooks.fire('action:alert.animate', {alert, params: parameters});
+		}, 50);
+
+		// Handle mouseenter/mouseleave
+		alert
+			.on('mouseenter', function () {
+				$(this).css('transition-duration', 0);
+			});
+	}
+
+	return module;
 });

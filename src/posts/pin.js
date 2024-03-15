@@ -15,10 +15,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 const plugins = require("../plugins");
 const topics = require("../topics");
-function postFunc(Posts) {
+function postFunction(Posts) {
     function togglePin(type, pid, uid) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (parseInt(uid, 10) <= 0) {
+            if (Number.parseInt(uid, 10) <= 0) {
                 throw new Error('[[error:not-logged-in]]');
             }
             const isPinning = type === 'pin';
@@ -34,9 +34,9 @@ function postFunc(Posts) {
             const toWrite = isPinning ? 1 : 0;
             yield Posts.setPostField(pid, 'pinned', toWrite);
             yield plugins.hooks.fire(`action:post.${type}`, {
-                pid: pid,
+                pid,
                 tid: postData.tid,
-                uid: uid,
+                uid,
                 owner: postData.uid,
                 current: hasPinned ? 'pinned' : 'unpinned',
             });
@@ -48,7 +48,7 @@ function postFunc(Posts) {
     }
     Posts.hasPinned = function (pid, uid) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (parseInt(uid, 10) <= 0) {
+            if (Number.parseInt(uid, 10) <= 0) {
                 return Array.isArray(pid) ? pid.map(() => false) : false;
             }
             const postData = yield Posts.getPostFields(pid, ['pinned']);
@@ -57,17 +57,17 @@ function postFunc(Posts) {
     };
     Posts.pin = function (pid, uid) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield togglePin('pin', pid, uid);
+            return togglePin('pin', pid, uid);
         });
     };
     Posts.unpin = function (pid, uid) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield togglePin('unpin', pid, uid);
+            return togglePin('unpin', pid, uid);
         });
     };
     Posts.isTopicOP = function (pid, uid) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (parseInt(uid, 10) <= 0 || parseInt(pid, 10) <= 0) {
+            if (Number.parseInt(uid, 10) <= 0 || Number.parseInt(pid, 10) <= 0) {
                 return false;
             }
             // Get the post's topic
@@ -78,4 +78,4 @@ function postFunc(Posts) {
         });
     };
 }
-module.exports = postFunc;
+module.exports = postFunction;

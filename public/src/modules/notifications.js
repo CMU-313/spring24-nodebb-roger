@@ -1,160 +1,162 @@
 'use strict';
 
-
 define('notifications', [
-    'translator',
-    'components',
-    'navigator',
-    'tinycon',
-    'hooks',
-    'alerts',
-], function (translator, components, navigator, Tinycon, hooks, alerts) {
-    const Notifications = {};
+	'translator',
+	'components',
+	'navigator',
+	'tinycon',
+	'hooks',
+	'alerts',
+], (translator, components, navigator, Tinycon, hooks, alerts) => {
+	const Notifications = {};
 
-    let unreadNotifs = {};
+	let unreadNotifs = {};
 
-    const _addShortTimeagoString = ({ notifications: notifs }) => new Promise((resolve) => {
-        translator.toggleTimeagoShorthand(function () {
-            for (let i = 0; i < notifs.length; i += 1) {
-                notifs[i].timeago = $.timeago(new Date(parseInt(notifs[i].datetime, 10)));
-            }
-            translator.toggleTimeagoShorthand();
-            resolve({ notifications: notifs });
-        });
-    });
-    hooks.on('filter:notifications.load', _addShortTimeagoString);
+	const _addShortTimeagoString = ({notifications: notifs}) => new Promise(resolve => {
+		translator.toggleTimeagoShorthand(() => {
+			for (const notification of notifs) {
+				notification.timeago = $.timeago(new Date(Number.parseInt(notification.datetime, 10)));
+			}
 
-    Notifications.loadNotifications = function (notifList, callback) {
-        callback = callback || function () {};
-        socket.emit('notifications.get', null, function (err, data) {
-            if (err) {
-                return alerts.error(err);
-            }
+			translator.toggleTimeagoShorthand();
+			resolve({notifications: notifs});
+		});
+	});
+	hooks.on('filter:notifications.load', _addShortTimeagoString);
 
-            const notifs = data.unread.concat(data.read).sort(function (a, b) {
-                return parseInt(a.datetime, 10) > parseInt(b.datetime, 10) ? -1 : 1;
-            });
+	Notifications.loadNotifications = function (notificationList, callback) {
+		callback ||= function () {};
+		socket.emit('notifications.get', null, (error, data) => {
+			if (error) {
+				return alerts.error(error);
+			}
 
-            hooks.fire('filter:notifications.load', { notifications: notifs }).then(({ notifications }) => {
-                app.parseAndTranslate('partials/notifications_list', { notifications }, function (html) {
-                    notifList.html(html);
-                    notifList.off('click').on('click', '[data-nid]', function (ev) {
-                        const notifEl = $(this);
-                        if (scrollToPostIndexIfOnPage(notifEl)) {
-                            ev.stopPropagation();
-                            ev.preventDefault();
-                            components.get('notifications/list').dropdown('toggle');
-                        }
+			const notifs = data.unread.concat(data.read).sort((a, b) => Number.parseInt(a.datetime, 10) > Number.parseInt(b.datetime, 10) ? -1 : 1);
 
-                        const unread = notifEl.hasClass('unread');
-                        if (!unread) {
-                            return;
-                        }
-                        const nid = notifEl.attr('data-nid');
-                        markNotification(nid, true);
-                    });
-                    components.get('notifications').on('click', '.mark-all-read', Notifications.markAllRead);
+			hooks.fire('filter:notifications.load', {notifications: notifs}).then(({notifications}) => {
+				app.parseAndTranslate('partials/notifications_list', {notifications}, html => {
+					notificationList.html(html);
+					notificationList.off('click').on('click', '[data-nid]', function (event) {
+						const notificationElement = $(this);
+						if (scrollToPostIndexIfOnPage(notificationElement)) {
+							event.stopPropagation();
+							event.preventDefault();
+							components.get('notifications/list').dropdown('toggle');
+						}
 
-                    notifList.on('click', '.mark-read', function () {
-                        const liEl = $(this).parents('li');
-                        const unread = liEl.hasClass('unread');
-                        const nid = liEl.attr('data-nid');
-                        markNotification(nid, unread, function () {
-                            liEl.toggleClass('unread');
-                        });
-                        return false;
-                    });
+						const unread = notificationElement.hasClass('unread');
+						if (!unread) {
+							return;
+						}
 
-                    hooks.fire('action:notifications.loaded', {
-                        notifications: notifs,
-                        list: notifList,
-                    });
-                    callback();
-                });
-            });
-        });
-    };
+						const nid = notificationElement.attr('data-nid');
+						markNotification(nid, true);
+					});
+					components.get('notifications').on('click', '.mark-all-read', Notifications.markAllRead);
 
-    Notifications.onNewNotification = function (notifData) {
-        if (ajaxify.currentPage === 'notifications') {
-            ajaxify.refresh();
-        }
+					notificationList.on('click', '.mark-read', function () {
+						const liElement = $(this).parents('li');
+						const unread = liElement.hasClass('unread');
+						const nid = liElement.attr('data-nid');
+						markNotification(nid, unread, () => {
+							liElement.toggleClass('unread');
+						});
+						return false;
+					});
 
-        socket.emit('notifications.getCount', function (err, count) {
-            if (err) {
-                return alerts.error(err);
-            }
+					hooks.fire('action:notifications.loaded', {
+						notifications: notifs,
+						list: notificationList,
+					});
+					callback();
+				});
+			});
+		});
+	};
 
-            Notifications.updateNotifCount(count);
-        });
+	Notifications.onNewNotification = function (notificationData) {
+		if (ajaxify.currentPage === 'notifications') {
+			ajaxify.refresh();
+		}
 
-        if (!unreadNotifs[notifData.nid]) {
-            unreadNotifs[notifData.nid] = true;
-        }
-    };
+		socket.emit('notifications.getCount', (error, count) => {
+			if (error) {
+				return alerts.error(error);
+			}
 
-    function markNotification(nid, read, callback) {
-        socket.emit('notifications.mark' + (read ? 'Read' : 'Unread'), nid, function (err) {
-            if (err) {
-                return alerts.error(err);
-            }
+			Notifications.updateNotifCount(count);
+		});
 
-            if (read && unreadNotifs[nid]) {
-                delete unreadNotifs[nid];
-            }
-            if (callback) {
-                callback();
-            }
-        });
-    }
+		if (!unreadNotifs[notificationData.nid]) {
+			unreadNotifs[notificationData.nid] = true;
+		}
+	};
 
-    function scrollToPostIndexIfOnPage(notifEl) {
-        // Scroll to index if already in topic (gh#5873)
-        const pid = notifEl.attr('data-pid');
-        const path = notifEl.attr('data-path');
-        const postEl = components.get('post', 'pid', pid);
-        if (path.startsWith(config.relative_path + '/post/') && pid && postEl.length && ajaxify.data.template.topic) {
-            navigator.scrollToIndex(postEl.attr('data-index'), true);
-            return true;
-        }
-        return false;
-    }
+	function markNotification(nid, read, callback) {
+		socket.emit('notifications.mark' + (read ? 'Read' : 'Unread'), nid, error => {
+			if (error) {
+				return alerts.error(error);
+			}
 
-    Notifications.updateNotifCount = function (count) {
-        const notifIcon = components.get('notifications/icon');
-        count = Math.max(0, count);
-        if (count > 0) {
-            notifIcon.removeClass('fa-bell-o').addClass('fa-bell');
-        } else {
-            notifIcon.removeClass('fa-bell').addClass('fa-bell-o');
-        }
+			if (read && unreadNotifs[nid]) {
+				delete unreadNotifs[nid];
+			}
 
-        notifIcon.toggleClass('unread-count', count > 0);
-        notifIcon.attr('data-content', count > 99 ? '99+' : count);
+			if (callback) {
+				callback();
+			}
+		});
+	}
 
-        const payload = {
-            count: count,
-            updateFavicon: true,
-        };
-        hooks.fire('action:notification.updateCount', payload);
+	function scrollToPostIndexIfOnPage(notificationElement) {
+		// Scroll to index if already in topic (gh#5873)
+		const pid = notificationElement.attr('data-pid');
+		const path = notificationElement.attr('data-path');
+		const postElement = components.get('post', 'pid', pid);
+		if (path.startsWith(config.relative_path + '/post/') && pid && postElement.length > 0 && ajaxify.data.template.topic) {
+			navigator.scrollToIndex(postElement.attr('data-index'), true);
+			return true;
+		}
 
-        if (payload.updateFavicon) {
-            Tinycon.setBubble(count > 99 ? '99+' : count);
-        }
+		return false;
+	}
 
-        if (navigator.setAppBadge) { // feature detection
-            navigator.setAppBadge(count);
-        }
-    };
+	Notifications.updateNotifCount = function (count) {
+		const notificationIcon = components.get('notifications/icon');
+		count = Math.max(0, count);
+		if (count > 0) {
+			notificationIcon.removeClass('fa-bell-o').addClass('fa-bell');
+		} else {
+			notificationIcon.removeClass('fa-bell').addClass('fa-bell-o');
+		}
 
-    Notifications.markAllRead = function () {
-        socket.emit('notifications.markAllRead', function (err) {
-            if (err) {
-                alerts.error(err);
-            }
-            unreadNotifs = {};
-        });
-    };
+		notificationIcon.toggleClass('unread-count', count > 0);
+		notificationIcon.attr('data-content', count > 99 ? '99+' : count);
 
-    return Notifications;
+		const payload = {
+			count,
+			updateFavicon: true,
+		};
+		hooks.fire('action:notification.updateCount', payload);
+
+		if (payload.updateFavicon) {
+			Tinycon.setBubble(count > 99 ? '99+' : count);
+		}
+
+		if (navigator.setAppBadge) { // Feature detection
+			navigator.setAppBadge(count);
+		}
+	};
+
+	Notifications.markAllRead = function () {
+		socket.emit('notifications.markAllRead', error => {
+			if (error) {
+				alerts.error(error);
+			}
+
+			unreadNotifs = {};
+		});
+	};
+
+	return Notifications;
 });

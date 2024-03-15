@@ -1,15 +1,15 @@
 'use strict';
 
-const path = require('path');
+const path = require('node:path');
 const nconf = require('nconf');
 
 nconf.argv().env({
-    separator: '__',
+	separator: '__',
 });
 const winston = require('winston');
-const { fork } = require('child_process');
+const {fork} = require('node:child_process');
 
-const { env } = process;
+const {env} = process;
 let worker;
 
 env.NODE_ENV = env.NODE_ENV || 'development';
@@ -23,184 +23,214 @@ const db = require('./src/database');
 const plugins = require('./src/plugins');
 
 module.exports = function (grunt) {
-    const args = [];
+	const arguments_ = [];
 
-    if (!grunt.option('verbose')) {
-        args.push('--log-level=info');
-        nconf.set('log-level', 'info');
-    }
-    prestart.setupWinston();
+	if (!grunt.option('verbose')) {
+		arguments_.push('--log-level=info');
+		nconf.set('log-level', 'info');
+	}
 
-    grunt.initConfig({
-        watch: {},
-    });
+	prestart.setupWinston();
 
-    grunt.loadNpmTasks('grunt-contrib-watch');
+	grunt.initConfig({
+		watch: {},
+	});
 
-    grunt.registerTask('default', ['watch']);
+	grunt.loadNpmTasks('grunt-contrib-watch');
 
-    grunt.registerTask('init', async function () {
-        const done = this.async();
-        let pluginList = [];
-        if (!process.argv.includes('--core')) {
-            await db.init();
-            pluginList = await plugins.getActive();
-            if (!pluginList.includes('nodebb-plugin-composer-default')) {
-                pluginList.push('nodebb-plugin-composer-default');
-            }
-        }
+	grunt.registerTask('default', ['watch']);
 
-        const styleUpdated_Client = pluginList.map(p => `node_modules/${p}/*.less`)
-            .concat(pluginList.map(p => `node_modules/${p}/*.css`))
-            .concat(pluginList.map(p => `node_modules/${p}/+(public|static|less)/**/*.less`))
-            .concat(pluginList.map(p => `node_modules/${p}/+(public|static)/**/*.css`));
+	grunt.registerTask('init', async function () {
+		const done = this.async();
+		let pluginList = [];
+		if (!process.argv.includes('--core')) {
+			await db.init();
+			pluginList = await plugins.getActive();
+			if (!pluginList.includes('nodebb-plugin-composer-default')) {
+				pluginList.push('nodebb-plugin-composer-default');
+			}
+		}
 
-        const styleUpdated_Admin = pluginList.map(p => `node_modules/${p}/*.less`)
-            .concat(pluginList.map(p => `node_modules/${p}/*.css`))
-            .concat(pluginList.map(p => `node_modules/${p}/+(public|static|less)/**/*.less`))
-            .concat(pluginList.map(p => `node_modules/${p}/+(public|static)/**/*.css`));
+		const styleUpdated_Client = pluginList.map(p => `node_modules/${p}/*.less`)
+			.concat(pluginList.map(p => `node_modules/${p}/*.css`))
+			.concat(pluginList.map(p => `node_modules/${p}/+(public|static|less)/**/*.less`))
+			.concat(pluginList.map(p => `node_modules/${p}/+(public|static)/**/*.css`));
 
-        const clientUpdated = pluginList.map(p => `node_modules/${p}/+(public|static)/**/*.js`);
-        const serverUpdated = pluginList.map(p => `node_modules/${p}/*.js`)
-            .concat(pluginList.map(p => `node_modules/${p}/+(lib|src)/**/*.js`));
+		const styleUpdated_Admin = pluginList.map(p => `node_modules/${p}/*.less`)
+			.concat(pluginList.map(p => `node_modules/${p}/*.css`))
+			.concat(pluginList.map(p => `node_modules/${p}/+(public|static|less)/**/*.less`))
+			.concat(pluginList.map(p => `node_modules/${p}/+(public|static)/**/*.css`));
 
-        const templatesUpdated = pluginList.map(p => `node_modules/${p}/+(public|static|templates)/**/*.tpl`);
-        const langUpdated = pluginList.map(p => `node_modules/${p}/+(public|static|languages)/**/*.json`);
+		const clientUpdated = pluginList.map(p => `node_modules/${p}/+(public|static)/**/*.js`);
+		const serverUpdated = pluginList.map(p => `node_modules/${p}/*.js`)
+			.concat(pluginList.map(p => `node_modules/${p}/+(lib|src)/**/*.js`));
 
-        grunt.config(['watch'], {
-            styleUpdated_Client: {
-                files: [
-                    'public/less/**/*.less',
-                    'themes/**/*.less',
-                    ...styleUpdated_Client,
-                ],
-                options: {
-                    interval: 1000,
-                },
-            },
-            styleUpdated_Admin: {
-                files: [
-                    'public/less/**/*.less',
-                    'themes/**/*.less',
-                    ...styleUpdated_Admin,
-                ],
-                options: {
-                    interval: 1000,
-                },
-            },
-            clientUpdated: {
-                files: [
-                    'public/src/**/*.js',
-                    'public/vendor/**/*.js',
-                    ...clientUpdated,
-                    'node_modules/benchpressjs/build/benchpress.js',
-                ],
-                options: {
-                    interval: 1000,
-                },
-            },
-            serverUpdated: {
-                files: [
-                    'app.js',
-                    'install/*.js',
-                    'src/**/*.js',
-                    'public/src/modules/translator.common.js',
-                    'public/src/modules/helpers.common.js',
-                    'public/src/utils.common.js',
-                    serverUpdated,
-                    '!src/upgrades/**',
-                ],
-                options: {
-                    interval: 1000,
-                },
-            },
-            typescriptUpdated: {
-                files: [
-                    'install/*.ts',
-                    'src/**/*.ts',
-                    'public/src/**/*.ts',
-                    'public/vendor/**/*.ts',
-                ],
-                options: {
-                    interval: 1000,
-                },
-            },
-            templatesUpdated: {
-                files: [
-                    'src/views/**/*.tpl',
-                    'themes/**/*.tpl',
-                    ...templatesUpdated,
-                ],
-                options: {
-                    interval: 1000,
-                },
-            },
-            langUpdated: {
-                files: [
-                    'public/language/en-GB/*.json',
-                    'public/language/en-GB/**/*.json',
-                    ...langUpdated,
-                ],
-                options: {
-                    interval: 1000,
-                },
-            },
-        });
-        const build = require('./src/meta/build');
-        if (!grunt.option('skip')) {
-            await build.build(true, { watch: true });
-        }
-        run();
-        done();
-    });
+		const templatesUpdated = pluginList.map(p => `node_modules/${p}/+(public|static|templates)/**/*.tpl`);
+		const langUpdated = pluginList.map(p => `node_modules/${p}/+(public|static|languages)/**/*.json`);
 
-    function run() {
-        if (worker) {
-            worker.kill();
-        }
+		grunt.config(['watch'], {
+			styleUpdated_Client: {
+				files: [
+					'public/less/**/*.less',
+					'themes/**/*.less',
+					...styleUpdated_Client,
+				],
+				options: {
+					interval: 1000,
+				},
+			},
+			styleUpdated_Admin: {
+				files: [
+					'public/less/**/*.less',
+					'themes/**/*.less',
+					...styleUpdated_Admin,
+				],
+				options: {
+					interval: 1000,
+				},
+			},
+			clientUpdated: {
+				files: [
+					'public/src/**/*.js',
+					'public/vendor/**/*.js',
+					...clientUpdated,
+					'node_modules/benchpressjs/build/benchpress.js',
+				],
+				options: {
+					interval: 1000,
+				},
+			},
+			serverUpdated: {
+				files: [
+					'app.js',
+					'install/*.js',
+					'src/**/*.js',
+					'public/src/modules/translator.common.js',
+					'public/src/modules/helpers.common.js',
+					'public/src/utils.common.js',
+					serverUpdated,
+					'!src/upgrades/**',
+				],
+				options: {
+					interval: 1000,
+				},
+			},
+			typescriptUpdated: {
+				files: [
+					'install/*.ts',
+					'src/**/*.ts',
+					'public/src/**/*.ts',
+					'public/vendor/**/*.ts',
+				],
+				options: {
+					interval: 1000,
+				},
+			},
+			templatesUpdated: {
+				files: [
+					'src/views/**/*.tpl',
+					'themes/**/*.tpl',
+					...templatesUpdated,
+				],
+				options: {
+					interval: 1000,
+				},
+			},
+			langUpdated: {
+				files: [
+					'public/language/en-GB/*.json',
+					'public/language/en-GB/**/*.json',
+					...langUpdated,
+				],
+				options: {
+					interval: 1000,
+				},
+			},
+		});
+		const build = require('./src/meta/build');
+		if (!grunt.option('skip')) {
+			await build.build(true, {watch: true});
+		}
 
-        const execArgv = [];
-        const inspect = process.argv.find(a => a.startsWith('--inspect'));
+		run();
+		done();
+	});
 
-        if (inspect) {
-            execArgv.push(inspect);
-        }
+	function run() {
+		if (worker) {
+			worker.kill();
+		}
 
-        worker = fork('app.js', args, {
-            env,
-            execArgv,
-        });
-    }
+		const execArgv = [];
+		const inspect = process.argv.find(a => a.startsWith('--inspect'));
 
-    grunt.task.run('init');
+		if (inspect) {
+			execArgv.push(inspect);
+		}
 
-    grunt.event.removeAllListeners('watch');
-    grunt.event.on('watch', (action, filepath, target) => {
-        let compiling;
-        if (target === 'styleUpdated_Client') {
-            compiling = 'clientCSS';
-        } else if (target === 'styleUpdated_Admin') {
-            compiling = 'acpCSS';
-        } else if (target === 'clientUpdated' || target === 'typescriptUpdated') {
-            compiling = 'js';
-        } else if (target === 'templatesUpdated') {
-            compiling = 'tpl';
-        } else if (target === 'langUpdated') {
-            compiling = 'lang';
-        } else if (target === 'serverUpdated') {
-            // empty require cache
-            const paths = ['./src/meta/build.js', './src/meta/index.js'];
-            paths.forEach(p => delete require.cache[require.resolve(p)]);
-            return run();
-        }
+		worker = fork('app.js', arguments_, {
+			env,
+			execArgv,
+		});
+	}
 
-        require('./src/meta/build').build([compiling], { webpack: false }, (err) => {
-            if (err) {
-                winston.error(err.stack);
-            }
-            if (worker) {
-                worker.send({ compiling: compiling });
-            }
-        });
-    });
+	grunt.task.run('init');
+
+	grunt.event.removeAllListeners('watch');
+	grunt.event.on('watch', (action, filepath, target) => {
+		let compiling;
+		switch (target) {
+			case 'styleUpdated_Client': {
+				compiling = 'clientCSS';
+
+				break;
+			}
+
+			case 'styleUpdated_Admin': {
+				compiling = 'acpCSS';
+
+				break;
+			}
+
+			case 'clientUpdated':
+			case 'typescriptUpdated': {
+				compiling = 'js';
+
+				break;
+			}
+
+			case 'templatesUpdated': {
+				compiling = 'tpl';
+
+				break;
+			}
+
+			case 'langUpdated': {
+				compiling = 'lang';
+
+				break;
+			}
+
+			case 'serverUpdated': {
+			// Empty require cache
+				const paths = ['./src/meta/build.js', './src/meta/index.js'];
+				for (const p of paths) {
+					delete require.cache[require.resolve(p)];
+				}
+
+				return run();
+			}
+		// No default
+		}
+
+		require('./src/meta/build').build([compiling], {webpack: false}, error => {
+			if (error) {
+				winston.error(error.stack);
+			}
+
+			if (worker) {
+				worker.send({compiling});
+			}
+		});
+	});
 };

@@ -1,43 +1,44 @@
 'use strict';
 
+define('admin/advanced/events', ['bootbox', 'alerts'], (bootbox, alerts) => {
+	const Events = {};
 
-define('admin/advanced/events', ['bootbox', 'alerts'], function (bootbox, alerts) {
-    const Events = {};
+	Events.init = function () {
+		$('[data-action="clear"]').on('click', () => {
+			bootbox.confirm('[[admin/advanced/events:confirm-delete-all-events]]', confirm => {
+				if (confirm) {
+					socket.emit('admin.deleteAllEvents', error => {
+						if (error) {
+							return alerts.error(error);
+						}
 
-    Events.init = function () {
-        $('[data-action="clear"]').on('click', function () {
-            bootbox.confirm('[[admin/advanced/events:confirm-delete-all-events]]', (confirm) => {
-                if (confirm) {
-                    socket.emit('admin.deleteAllEvents', function (err) {
-                        if (err) {
-                            return alerts.error(err);
-                        }
-                        $('.events-list').empty();
-                    });
-                }
-            });
-        });
+						$('.events-list').empty();
+					});
+				}
+			});
+		});
 
-        $('.delete-event').on('click', function () {
-            const $parentEl = $(this).parents('[data-eid]');
-            const eid = $parentEl.attr('data-eid');
-            socket.emit('admin.deleteEvents', [eid], function (err) {
-                if (err) {
-                    return alerts.error(err);
-                }
-                $parentEl.remove();
-            });
-        });
+		$('.delete-event').on('click', function () {
+			const $parentElement = $(this).parents('[data-eid]');
+			const eid = $parentElement.attr('data-eid');
+			socket.emit('admin.deleteEvents', [eid], error => {
+				if (error) {
+					return alerts.error(error);
+				}
 
-        $('#apply').on('click', Events.refresh);
-    };
+				$parentElement.remove();
+			});
+		});
 
-    Events.refresh = function (event) {
-        event.preventDefault();
+		$('#apply').on('click', Events.refresh);
+	};
 
-        const $formEl = $('#filters');
-        ajaxify.go('admin/advanced/events?' + $formEl.serialize());
-    };
+	Events.refresh = function (event) {
+		event.preventDefault();
 
-    return Events;
+		const $formElement = $('#filters');
+		ajaxify.go('admin/advanced/events?' + $formElement.serialize());
+	};
+
+	return Events;
 });

@@ -1,46 +1,46 @@
 'use strict';
 
-define('forum/header/notifications', ['components'], function (components) {
-    const notifications = {};
+define('forum/header/notifications', ['components'], components => {
+	const notifications = {};
 
-    notifications.prepareDOM = function () {
-        const notifContainer = components.get('notifications');
-        const notifTrigger = notifContainer.children('a');
-        const notifList = components.get('notifications/list');
+	notifications.prepareDOM = function () {
+		const notificationContainer = components.get('notifications');
+		const notificationTrigger = notificationContainer.children('a');
+		const notificationList = components.get('notifications/list');
 
-        notifTrigger.on('click', function (e) {
-            e.preventDefault();
-            if (notifContainer.hasClass('open')) {
-                return;
-            }
+		notificationTrigger.on('click', e => {
+			e.preventDefault();
+			if (notificationContainer.hasClass('open')) {
+				return;
+			}
 
-            requireAndCall('loadNotifications', notifList);
-        });
+			requireAndCall('loadNotifications', notificationList);
+		});
 
-        if (notifTrigger.parents('.dropdown').hasClass('open')) {
-            requireAndCall('loadNotifications', notifList);
-        }
+		if (notificationTrigger.parents('.dropdown').hasClass('open')) {
+			requireAndCall('loadNotifications', notificationList);
+		}
 
-        socket.removeListener('event:new_notification', onNewNotification);
-        socket.on('event:new_notification', onNewNotification);
+		socket.removeListener('event:new_notification', onNewNotification);
+		socket.on('event:new_notification', onNewNotification);
 
-        socket.removeListener('event:notifications.updateCount', onUpdateCount);
-        socket.on('event:notifications.updateCount', onUpdateCount);
-    };
+		socket.removeListener('event:notifications.updateCount', onUpdateCount);
+		socket.on('event:notifications.updateCount', onUpdateCount);
+	};
 
-    function onNewNotification(data) {
-        requireAndCall('onNewNotification', data);
-    }
+	function onNewNotification(data) {
+		requireAndCall('onNewNotification', data);
+	}
 
-    function onUpdateCount(data) {
-        requireAndCall('updateNotifCount', data);
-    }
+	function onUpdateCount(data) {
+		requireAndCall('updateNotifCount', data);
+	}
 
-    function requireAndCall(method, param) {
-        require(['notifications'], function (notifications) {
-            notifications[method](param);
-        });
-    }
+	function requireAndCall(method, parameter) {
+		require(['notifications'], notifications => {
+			notifications[method](parameter);
+		});
+	}
 
-    return notifications;
+	return notifications;
 });

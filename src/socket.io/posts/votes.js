@@ -7,56 +7,60 @@ const privileges = require('../../privileges');
 const meta = require('../../meta');
 
 module.exports = function (SocketPosts) {
-    SocketPosts.getVoters = async function (socket, data) {
-        if (!data || !data.pid || !data.cid) {
-            throw new Error('[[error:invalid-data]]');
-        }
-        const showDownvotes = !meta.config['downvote:disabled'];
-        const canSeeVotes = meta.config.votesArePublic ||
-            await privileges.categories.isAdminOrMod(data.cid, socket.uid);
-        if (!canSeeVotes) {
-            throw new Error('[[error:no-privileges]]');
-        }
-        const [upvoteUids, downvoteUids] = await Promise.all([
-            db.getSetMembers(`pid:${data.pid}:upvote`),
-            showDownvotes ? db.getSetMembers(`pid:${data.pid}:downvote`) : [],
-        ]);
+	SocketPosts.getVoters = async function (socket, data) {
+		if (!data || !data.pid || !data.cid) {
+			throw new Error('[[error:invalid-data]]');
+		}
 
-        const [upvoters, downvoters] = await Promise.all([
-            user.getUsersFields(upvoteUids, ['username', 'userslug', 'picture']),
-            user.getUsersFields(downvoteUids, ['username', 'userslug', 'picture']),
-        ]);
+		const showDownvotes = !meta.config['downvote:disabled'];
+		const canSeeVotes = meta.config.votesArePublic
+            || await privileges.categories.isAdminOrMod(data.cid, socket.uid);
+		if (!canSeeVotes) {
+			throw new Error('[[error:no-privileges]]');
+		}
 
-        return {
-            upvoteCount: upvoters.length,
-            downvoteCount: downvoters.length,
-            showDownvotes: showDownvotes,
-            upvoters: upvoters,
-            downvoters: downvoters,
-        };
-    };
+		const [upvoteUids, downvoteUids] = await Promise.all([
+			db.getSetMembers(`pid:${data.pid}:upvote`),
+			showDownvotes ? db.getSetMembers(`pid:${data.pid}:downvote`) : [],
+		]);
 
-    SocketPosts.getUpvoters = async function (socket, pids) {
-        if (!Array.isArray(pids)) {
-            throw new Error('[[error:invalid-data]]');
-        }
-        const data = await posts.getUpvotedUidsByPids(pids);
-        if (!data.length) {
-            return [];
-        }
+		const [upvoters, downvoters] = await Promise.all([
+			user.getUsersFields(upvoteUids, ['username', 'userslug', 'picture']),
+			user.getUsersFields(downvoteUids, ['username', 'userslug', 'picture']),
+		]);
 
-        const result = await Promise.all(data.map(async (uids) => {
-            let otherCount = 0;
-            if (uids.length > 6) {
-                otherCount = uids.length - 5;
-                uids = uids.slice(0, 5);
-            }
-            const usernames = await user.getUsernamesByUids(uids);
-            return {
-                otherCount: otherCount,
-                usernames: usernames,
-            };
-        }));
-        return result;
-    };
+		return {
+			upvoteCount: upvoters.length,
+			downvoteCount: downvoters.length,
+			showDownvotes,
+			upvoters,
+			downvoters,
+		};
+	};
+
+	SocketPosts.getUpvoters = async function (socket, pids) {
+		if (!Array.isArray(pids)) {
+			throw new TypeError('[[error:invalid-data]]');
+		}
+
+		const data = await posts.getUpvotedUidsByPids(pids);
+		if (data.length === 0) {
+			return [];
+		}
+
+		const result = await Promise.all(data.map(async uids => {
+			let otherCount = 0;
+			if (uids.length > 6) {
+				otherCount = uids.length - 5;
+				uids = uids.slice(0, 5);
+			}
+
+			const usernames = await user.getUsernamesByUids(uids);
+			return {
+				otherCount,
+				usernames,
+			};
+		}));
+		return result;
+	};
 };

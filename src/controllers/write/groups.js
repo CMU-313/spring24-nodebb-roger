@@ -1,49 +1,48 @@
 'use strict';
 
 const api = require('../../api');
-
 const helpers = require('../helpers');
 
 const Groups = module.exports;
 
-Groups.exists = async (req, res) => {
-    helpers.formatApiResponse(200, res);
+Groups.exists = async (request, res) => {
+	helpers.formatApiResponse(200, res);
 };
 
-Groups.create = async (req, res) => {
-    const groupObj = await api.groups.create(req, req.body);
-    helpers.formatApiResponse(200, res, groupObj);
+Groups.create = async (request, res) => {
+	const groupObject = await api.groups.create(request, request.body);
+	helpers.formatApiResponse(200, res, groupObject);
 };
 
-Groups.update = async (req, res) => {
-    const groupObj = await api.groups.update(req, {
-        ...req.body,
-        slug: req.params.slug,
-    });
-    helpers.formatApiResponse(200, res, groupObj);
+Groups.update = async (request, res) => {
+	const groupObject = await api.groups.update(request, {
+		...request.body,
+		slug: request.params.slug,
+	});
+	helpers.formatApiResponse(200, res, groupObject);
 };
 
-Groups.delete = async (req, res) => {
-    await api.groups.delete(req, req.params);
-    helpers.formatApiResponse(200, res);
+Groups.delete = async (request, res) => {
+	await api.groups.delete(request, request.params);
+	helpers.formatApiResponse(200, res);
 };
 
-Groups.join = async (req, res) => {
-    await api.groups.join(req, req.params);
-    helpers.formatApiResponse(200, res);
+Groups.join = async (request, res) => {
+	await api.groups.join(request, request.params);
+	helpers.formatApiResponse(200, res);
 };
 
-Groups.leave = async (req, res) => {
-    await api.groups.leave(req, req.params);
-    helpers.formatApiResponse(200, res);
+Groups.leave = async (request, res) => {
+	await api.groups.leave(request, request.params);
+	helpers.formatApiResponse(200, res);
 };
 
-Groups.grant = async (req, res) => {
-    await api.groups.grant(req, req.params);
-    helpers.formatApiResponse(200, res);
+Groups.grant = async (request, res) => {
+	await api.groups.grant(request, request.params);
+	helpers.formatApiResponse(200, res);
 };
 
-Groups.rescind = async (req, res) => {
-    await api.groups.rescind(req, req.params);
-    helpers.formatApiResponse(200, res);
+Groups.rescind = async (request, res) => {
+	await api.groups.rescind(request, request.params);
+	helpers.formatApiResponse(200, res);
 };

@@ -1,91 +1,93 @@
 'use strict';
 
-
 define('forum/topic/change-owner', [
-    'postSelect',
-    'autocomplete',
-    'alerts',
-], function (postSelect, autocomplete, alerts) {
-    const ChangeOwner = {};
+	'postSelect',
+	'autocomplete',
+	'alerts',
+], (postSelect, autocomplete, alerts) => {
+	const ChangeOwner = {};
 
-    let modal;
-    let commit;
-    let toUid = 0;
-    ChangeOwner.init = function (postEl) {
-        if (modal) {
-            return;
-        }
-        app.parseAndTranslate('partials/change_owner_modal', {}, function (html) {
-            modal = html;
+	let modal;
+	let commit;
+	let toUid = 0;
+	ChangeOwner.init = function (postElement) {
+		if (modal) {
+			return;
+		}
 
-            commit = modal.find('#change_owner_commit');
+		app.parseAndTranslate('partials/change_owner_modal', {}, html => {
+			modal = html;
 
-            $('body').append(modal);
+			commit = modal.find('#change_owner_commit');
 
-            modal.find('.close,#change_owner_cancel').on('click', closeModal);
-            modal.find('#username').on('keyup', checkButtonEnable);
-            postSelect.init(onPostToggled, {
-                allowMainPostSelect: true,
-            });
-            showPostsSelected();
+			$('body').append(modal);
 
-            if (postEl) {
-                postSelect.togglePostSelection(postEl, postEl.attr('data-pid'));
-            }
+			modal.find('.close,#change_owner_cancel').on('click', closeModal);
+			modal.find('#username').on('keyup', checkButtonEnable);
+			postSelect.init(onPostToggled, {
+				allowMainPostSelect: true,
+			});
+			showPostsSelected();
 
-            commit.on('click', function () {
-                changeOwner();
-            });
+			if (postElement) {
+				postSelect.togglePostSelection(postElement, postElement.attr('data-pid'));
+			}
 
-            autocomplete.user(modal.find('#username'), { filters: ['notbanned'] }, function (ev, ui) {
-                toUid = ui.item.user.uid;
-                checkButtonEnable();
-            });
-        });
-    };
+			commit.on('click', () => {
+				changeOwner();
+			});
 
-    function showPostsSelected() {
-        if (postSelect.pids.length) {
-            modal.find('#pids').translateHtml('[[topic:fork_pid_count, ' + postSelect.pids.length + ']]');
-        } else {
-            modal.find('#pids').translateHtml('[[topic:fork_no_pids]]');
-        }
-    }
+			autocomplete.user(modal.find('#username'), {filters: ['notbanned']}, (event, ui) => {
+				toUid = ui.item.user.uid;
+				checkButtonEnable();
+			});
+		});
+	};
 
-    function checkButtonEnable() {
-        if (toUid && modal.find('#username').length && modal.find('#username').val().length && postSelect.pids.length) {
-            commit.removeAttr('disabled');
-        } else {
-            commit.attr('disabled', true);
-        }
-    }
+	function showPostsSelected() {
+		if (postSelect.pids.length > 0) {
+			modal.find('#pids').translateHtml('[[topic:fork_pid_count, ' + postSelect.pids.length + ']]');
+		} else {
+			modal.find('#pids').translateHtml('[[topic:fork_no_pids]]');
+		}
+	}
 
-    function onPostToggled() {
-        checkButtonEnable();
-        showPostsSelected();
-    }
+	function checkButtonEnable() {
+		if (toUid && modal.find('#username').length > 0 && modal.find('#username').val().length > 0 && postSelect.pids.length > 0) {
+			commit.removeAttr('disabled');
+		} else {
+			commit.attr('disabled', true);
+		}
+	}
 
-    function changeOwner() {
-        if (!toUid) {
-            return;
-        }
-        socket.emit('posts.changeOwner', { pids: postSelect.pids, toUid: toUid }, function (err) {
-            if (err) {
-                return alerts.error(err);
-            }
-            ajaxify.refresh();
+	function onPostToggled() {
+		checkButtonEnable();
+		showPostsSelected();
+	}
 
-            closeModal();
-        });
-    }
+	function changeOwner() {
+		if (!toUid) {
+			return;
+		}
 
-    function closeModal() {
-        if (modal) {
-            modal.remove();
-            modal = null;
-            postSelect.disable();
-        }
-    }
+		socket.emit('posts.changeOwner', {pids: postSelect.pids, toUid}, error => {
+			if (error) {
+				return alerts.error(error);
+			}
 
-    return ChangeOwner;
+			ajaxify.refresh();
+
+			closeModal();
+		});
+	}
+
+	function closeModal() {
+		if (modal) {
+			modal.remove();
+			modal = null;
+			postSelect.disable();
+		}
+	}
+
+	return ChangeOwner;
 });

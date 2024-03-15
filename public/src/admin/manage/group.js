@@ -1,165 +1,173 @@
 'use strict';
 
 define('admin/manage/group', [
-    'forum/groups/memberlist',
-    'iconSelect',
-    'translator',
-    'categorySelector',
-    'groupSearch',
-    'slugify',
-    'api',
-    'bootbox',
-    'alerts',
-], function (memberList, iconSelect, translator, categorySelector, groupSearch, slugify, api, bootbox, alerts) {
-    const Groups = {};
+	'forum/groups/memberlist',
+	'iconSelect',
+	'translator',
+	'categorySelector',
+	'groupSearch',
+	'slugify',
+	'api',
+	'bootbox',
+	'alerts',
+], (memberList, iconSelect, translator, categorySelector, groupSearch, slugify, api, bootbox, alerts) => {
+	const Groups = {};
 
-    Groups.init = function () {
-        const groupIcon = $('#group-icon');
-        const changeGroupUserTitle = $('#change-group-user-title');
-        const changeGroupLabelColor = $('#change-group-label-color');
-        const changeGroupTextColor = $('#change-group-text-color');
-        const groupLabelPreview = $('#group-label-preview');
-        const groupLabelPreviewText = $('#group-label-preview-text');
+	Groups.init = function () {
+		const groupIcon = $('#group-icon');
+		const changeGroupUserTitle = $('#change-group-user-title');
+		const changeGroupLabelColor = $('#change-group-label-color');
+		const changeGroupTextColor = $('#change-group-text-color');
+		const groupLabelPreview = $('#group-label-preview');
+		const groupLabelPreviewText = $('#group-label-preview-text');
 
-        const groupName = ajaxify.data.group.name;
+		const groupName = ajaxify.data.group.name;
 
-        $('#group-selector').on('change', function () {
-            ajaxify.go('admin/manage/groups/' + $(this).val() + window.location.hash);
-        });
+		$('#group-selector').on('change', function () {
+			ajaxify.go('admin/manage/groups/' + $(this).val() + window.location.hash);
+		});
 
-        memberList.init('admin/manage/group');
+		memberList.init('admin/manage/group');
 
-        changeGroupUserTitle.on('keyup', function () {
-            groupLabelPreviewText.translateText(changeGroupUserTitle.val());
-        });
+		changeGroupUserTitle.on('keyup', () => {
+			groupLabelPreviewText.translateText(changeGroupUserTitle.val());
+		});
 
-        changeGroupLabelColor.on('keyup input', function () {
-            groupLabelPreview.css('background-color', changeGroupLabelColor.val() || '#000000');
-        });
+		changeGroupLabelColor.on('keyup input', () => {
+			groupLabelPreview.css('background-color', changeGroupLabelColor.val() || '#000000');
+		});
 
-        changeGroupTextColor.on('keyup input', function () {
-            groupLabelPreview.css('color', changeGroupTextColor.val() || '#ffffff');
-        });
+		changeGroupTextColor.on('keyup input', () => {
+			groupLabelPreview.css('color', changeGroupTextColor.val() || '#ffffff');
+		});
 
-        setupGroupMembersMenu();
+		setupGroupMembersMenu();
 
-        $('#group-icon, #group-icon-label').on('click', function () {
-            const currentIcon = groupIcon.attr('value');
-            iconSelect.init(groupIcon, function () {
-                let newIcon = groupIcon.attr('value');
-                if (newIcon === currentIcon) {
-                    return;
-                }
-                if (newIcon === 'fa-nbb-none') {
-                    newIcon = 'hidden';
-                }
-                $('#group-icon-preview').attr('class', 'fa fa-fw ' + (newIcon || 'hidden'));
-                app.flags = app.flags || {};
-                app.flags._unsaved = true;
-            });
-        });
+		$('#group-icon, #group-icon-label').on('click', () => {
+			const currentIcon = groupIcon.attr('value');
+			iconSelect.init(groupIcon, () => {
+				let newIcon = groupIcon.attr('value');
+				if (newIcon === currentIcon) {
+					return;
+				}
 
-        categorySelector.init($('.edit-privileges-selector [component="category-selector"]'), {
-            onSelect: function (selectedCategory) {
-                navigateToCategory(selectedCategory.cid);
-            },
-            showLinks: true,
-        });
+				if (newIcon === 'fa-nbb-none') {
+					newIcon = 'hidden';
+				}
 
-        const cidSelector = categorySelector.init($('.member-post-cids-selector [component="category-selector"]'), {
-            onSelect: function (selectedCategory) {
-                let cids = ($('#memberPostCids').val() || '').split(',').map(cid => parseInt(cid, 10));
-                cids.push(selectedCategory.cid);
-                cids = cids.filter((cid, index, array) => array.indexOf(cid) === index);
-                $('#memberPostCids').val(cids.join(','));
-                cidSelector.selectCategory(0);
-            },
-        });
+				$('#group-icon-preview').attr('class', 'fa fa-fw ' + (newIcon || 'hidden'));
+				app.flags = app.flags || {};
+				app.flags._unsaved = true;
+			});
+		});
 
-        groupSearch.init($('[component="group-selector"]'));
+		categorySelector.init($('.edit-privileges-selector [component="category-selector"]'), {
+			onSelect(selectedCategory) {
+				navigateToCategory(selectedCategory.cid);
+			},
+			showLinks: true,
+		});
 
-        $('form [data-property]').on('change', function () {
-            app.flags = app.flags || {};
-            app.flags._unsaved = true;
-        });
+		const cidSelector = categorySelector.init($('.member-post-cids-selector [component="category-selector"]'), {
+			onSelect(selectedCategory) {
+				let cids = ($('#memberPostCids').val() || '').split(',').map(cid => Number.parseInt(cid, 10));
+				cids.push(selectedCategory.cid);
+				cids = cids.filter((cid, index, array) => array.indexOf(cid) === index);
+				$('#memberPostCids').val(cids.join(','));
+				cidSelector.selectCategory(0);
+			},
+		});
 
-        $('#save').on('click', function () {
-            api.put(`/groups/${slugify(groupName)}`, {
-                name: $('#change-group-name').val(),
-                userTitle: changeGroupUserTitle.val(),
-                description: $('#change-group-desc').val(),
-                icon: groupIcon.attr('value'),
-                labelColor: changeGroupLabelColor.val(),
-                textColor: changeGroupTextColor.val(),
-                userTitleEnabled: $('#group-userTitleEnabled').is(':checked'),
-                private: $('#group-private').is(':checked'),
-                hidden: $('#group-hidden').is(':checked'),
-                memberPostCids: $('#memberPostCids').val(),
-                disableJoinRequests: $('#group-disableJoinRequests').is(':checked'),
-                disableLeave: $('#group-disableLeave').is(':checked'),
-            }).then(() => {
-                const newName = $('#change-group-name').val();
+		groupSearch.init($('[component="group-selector"]'));
 
-                // If the group name changed, change url
-                if (groupName !== newName) {
-                    ajaxify.go('admin/manage/groups/' + encodeURIComponent(newName), undefined, true);
-                }
+		$('form [data-property]').on('change', () => {
+			app.flags = app.flags || {};
+			app.flags._unsaved = true;
+		});
 
-                alerts.success('[[admin/manage/groups:edit.save-success]]');
-            }).catch(alerts.error);
-            return false;
-        });
-    };
+		$('#save').on('click', () => {
+			api.put(`/groups/${slugify(groupName)}`, {
+				name: $('#change-group-name').val(),
+				userTitle: changeGroupUserTitle.val(),
+				description: $('#change-group-desc').val(),
+				icon: groupIcon.attr('value'),
+				labelColor: changeGroupLabelColor.val(),
+				textColor: changeGroupTextColor.val(),
+				userTitleEnabled: $('#group-userTitleEnabled').is(':checked'),
+				private: $('#group-private').is(':checked'),
+				hidden: $('#group-hidden').is(':checked'),
+				memberPostCids: $('#memberPostCids').val(),
+				disableJoinRequests: $('#group-disableJoinRequests').is(':checked'),
+				disableLeave: $('#group-disableLeave').is(':checked'),
+			}).then(() => {
+				const newName = $('#change-group-name').val();
 
-    function setupGroupMembersMenu() {
-        $('[component="groups/members"]').on('click', '[data-action]', function () {
-            const btnEl = $(this);
-            const userRow = btnEl.parents('[data-uid]');
-            const ownerFlagEl = userRow.find('.member-name .user-owner-icon');
-            const isOwner = !ownerFlagEl.hasClass('invisible');
-            const uid = userRow.attr('data-uid');
-            const action = btnEl.attr('data-action');
+				// If the group name changed, change url
+				if (groupName !== newName) {
+					ajaxify.go('admin/manage/groups/' + encodeURIComponent(newName), undefined, true);
+				}
 
-            switch (action) {
-            case 'toggleOwnership':
-                api[isOwner ? 'del' : 'put'](`/groups/${ajaxify.data.group.slug}/ownership/${uid}`, {}).then(() => {
-                    ownerFlagEl.toggleClass('invisible');
-                }).catch(alerts.error);
-                break;
+				alerts.success('[[admin/manage/groups:edit.save-success]]');
+			}).catch(alerts.error);
+			return false;
+		});
+	};
 
-            case 'kick':
-                bootbox.confirm('[[admin/manage/groups:edit.confirm-remove-user]]', function (confirm) {
-                    if (!confirm) {
-                        return;
-                    }
-                    api.del('/groups/' + ajaxify.data.group.slug + '/membership/' + uid).then(() => {
-                        userRow.slideUp().remove();
-                    }).catch(alerts.error);
-                });
-                break;
-            default:
-                break;
-            }
-        });
-    }
+	function setupGroupMembersMenu() {
+		$('[component="groups/members"]').on('click', '[data-action]', function () {
+			const buttonElement = $(this);
+			const userRow = buttonElement.parents('[data-uid]');
+			const ownerFlagElement = userRow.find('.member-name .user-owner-icon');
+			const isOwner = !ownerFlagElement.hasClass('invisible');
+			const uid = userRow.attr('data-uid');
+			const action = buttonElement.attr('data-action');
 
-    function navigateToCategory(cid) {
-        if (cid) {
-            const url = 'admin/manage/privileges/' + cid + '?group=' + ajaxify.data.group.nameEncoded;
-            if (app.flags && app.flags._unsaved === true) {
-                translator.translate('[[global:unsaved-changes]]', function (text) {
-                    bootbox.confirm(text, function (navigate) {
-                        if (navigate) {
-                            app.flags._unsaved = false;
-                            ajaxify.go(url);
-                        }
-                    });
-                });
-                return;
-            }
-            ajaxify.go(url);
-        }
-    }
+			switch (action) {
+				case 'toggleOwnership': {
+					api[isOwner ? 'del' : 'put'](`/groups/${ajaxify.data.group.slug}/ownership/${uid}`, {}).then(() => {
+						ownerFlagElement.toggleClass('invisible');
+					}).catch(alerts.error);
+					break;
+				}
 
-    return Groups;
+				case 'kick': {
+					bootbox.confirm('[[admin/manage/groups:edit.confirm-remove-user]]', confirm => {
+						if (!confirm) {
+							return;
+						}
+
+						api.del('/groups/' + ajaxify.data.group.slug + '/membership/' + uid).then(() => {
+							userRow.slideUp().remove();
+						}).catch(alerts.error);
+					});
+					break;
+				}
+
+				default: {
+					break;
+				}
+			}
+		});
+	}
+
+	function navigateToCategory(cid) {
+		if (cid) {
+			const url = 'admin/manage/privileges/' + cid + '?group=' + ajaxify.data.group.nameEncoded;
+			if (app.flags && app.flags._unsaved === true) {
+				translator.translate('[[global:unsaved-changes]]', text => {
+					bootbox.confirm(text, navigate => {
+						if (navigate) {
+							app.flags._unsaved = false;
+							ajaxify.go(url);
+						}
+					});
+				});
+				return;
+			}
+
+			ajaxify.go(url);
+		}
+	}
+
+	return Groups;
 });

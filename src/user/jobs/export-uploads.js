@@ -3,11 +3,11 @@
 const nconf = require('nconf');
 
 nconf.argv().env({
-    separator: '__',
+	separator: '__',
 });
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const archiver = require('archiver');
 const winston = require('winston');
 
@@ -22,66 +22,71 @@ prestart.setupWinston();
 
 const db = require('../../database');
 
-process.on('message', async (msg) => {
-    if (msg && msg.uid) {
-        await db.init();
+process.on('message', async message => {
+	if (message && message.uid) {
+		await db.init();
 
-        const targetUid = msg.uid;
+		const targetUid = message.uid;
 
-        const archivePath = path.join(__dirname, '../../../build/export', `${targetUid}_uploads.zip`);
-        const rootDirectory = path.join(__dirname, '../../../public/uploads/');
+		const archivePath = path.join(__dirname, '../../../build/export', `${targetUid}_uploads.zip`);
+		const rootDirectory = path.join(__dirname, '../../../public/uploads/');
 
-        const user = require('../index');
+		const user = require('../index');
 
-        const archive = archiver('zip', {
-            zlib: { level: 9 }, // Sets the compression level.
-        });
+		const archive = archiver('zip', {
+			zlib: {level: 9}, // Sets the compression level.
+		});
 
-        archive.on('warning', (err) => {
-            switch (err.code) {
-            case 'ENOENT':
-                winston.warn(`[user/export/uploads] File not found: ${err.path}`);
-                break;
+		archive.on('warning', error => {
+			switch (error.code) {
+				case 'ENOENT': {
+					winston.warn(`[user/export/uploads] File not found: ${error.path}`);
+					break;
+				}
 
-            default:
-                winston.warn(`[user/export/uploads] Unexpected warning: ${err.message}`);
-                break;
-            }
-        });
+				default: {
+					winston.warn(`[user/export/uploads] Unexpected warning: ${error.message}`);
+					break;
+				}
+			}
+		});
 
-        archive.on('error', (err) => {
-            const trimPath = function (path) {
-                return path.replace(rootDirectory, '');
-            };
-            switch (err.code) {
-            case 'EACCES':
-                winston.error(`[user/export/uploads] File inaccessible: ${trimPath(err.path)}`);
-                break;
+		archive.on('error', error => {
+			const trimPath = function (path) {
+				return path.replace(rootDirectory, '');
+			};
 
-            default:
-                winston.error(`[user/export/uploads] Unable to construct archive: ${err.message}`);
-                break;
-            }
-        });
+			switch (error.code) {
+				case 'EACCES': {
+					winston.error(`[user/export/uploads] File inaccessible: ${trimPath(error.path)}`);
+					break;
+				}
 
-        const output = fs.createWriteStream(archivePath);
-        output.on('close', async () => {
-            await db.close();
-            process.exit(0);
-        });
+				default: {
+					winston.error(`[user/export/uploads] Unable to construct archive: ${error.message}`);
+					break;
+				}
+			}
+		});
 
-        archive.pipe(output);
-        winston.verbose(`[user/export/uploads] Collating uploads for uid ${targetUid}`);
-        await user.collateUploads(targetUid, archive);
+		const output = fs.createWriteStream(archivePath);
+		output.on('close', async () => {
+			await db.close();
+			process.exit(0);
+		});
 
-        const uploadedPicture = await user.getUserField(targetUid, 'uploadedpicture');
-        if (uploadedPicture) {
-            const filePath = uploadedPicture.replace(nconf.get('upload_url'), '');
-            archive.file(path.join(nconf.get('upload_path'), filePath), {
-                name: path.basename(filePath),
-            });
-        }
+		archive.pipe(output);
+		winston.verbose(`[user/export/uploads] Collating uploads for uid ${targetUid}`);
+		await user.collateUploads(targetUid, archive);
 
-        archive.finalize();
-    }
+		const uploadedPicture = await user.getUserField(targetUid, 'uploadedpicture');
+		if (uploadedPicture) {
+			const filePath = uploadedPicture.replace(nconf.get('upload_url'), '');
+			archive.file(path.join(nconf.get('upload_path'), filePath), {
+				name: path.basename(filePath),
+			});
+		}
+
+		archive.finalize();
+	}
 });

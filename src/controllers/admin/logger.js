@@ -2,6 +2,6 @@
 
 const loggerController = module.exports;
 
-loggerController.get = function (req, res) {
-    res.render('admin/development/logger', {});
+loggerController.get = function (request, res) {
+	res.render('admin/development/logger', {});
 };

@@ -1,44 +1,43 @@
 'use strict';
 
+define('forum/reset_code', ['alerts', 'zxcvbn'], (alerts, zxcvbn) => {
+	const ResetCode = {};
 
-define('forum/reset_code', ['alerts', 'zxcvbn'], function (alerts, zxcvbn) {
-    const ResetCode = {};
+	ResetCode.init = function () {
+		const reset_code = ajaxify.data.code;
 
-    ResetCode.init = function () {
-        const reset_code = ajaxify.data.code;
+		const resetElement = $('#reset');
+		const password = $('#password');
+		const repeat = $('#repeat');
 
-        const resetEl = $('#reset');
-        const password = $('#password');
-        const repeat = $('#repeat');
+		resetElement.on('click', () => {
+			try {
+				utils.assertPasswordValidity(password.val(), zxcvbn);
 
-        resetEl.on('click', function () {
-            try {
-                utils.assertPasswordValidity(password.val(), zxcvbn);
+				if (password.val() !== repeat.val()) {
+					throw new Error('[[reset_password:passwords_do_not_match]]');
+				}
 
-                if (password.val() !== repeat.val()) {
-                    throw new Error('[[reset_password:passwords_do_not_match]]');
-                }
+				resetElement.prop('disabled', true).translateHtml('<i class="fa fa-spin fa-refresh"></i> [[reset_password:changing_password]]');
+				socket.emit('user.reset.commit', {
+					code: reset_code,
+					password: password.val(),
+				}, error => {
+					if (error) {
+						ajaxify.refresh();
+						return alerts.error(error);
+					}
 
-                resetEl.prop('disabled', true).translateHtml('<i class="fa fa-spin fa-refresh"></i> [[reset_password:changing_password]]');
-                socket.emit('user.reset.commit', {
-                    code: reset_code,
-                    password: password.val(),
-                }, function (err) {
-                    if (err) {
-                        ajaxify.refresh();
-                        return alerts.error(err);
-                    }
+					window.location.href = config.relative_path + '/login';
+				});
+			} catch (error) {
+				$('#notice').removeClass('hidden');
+				$('#notice strong').translateText(error.message);
+			}
 
-                    window.location.href = config.relative_path + '/login';
-                });
-            } catch (err) {
-                $('#notice').removeClass('hidden');
-                $('#notice strong').translateText(err.message);
-            }
+			return false;
+		});
+	};
 
-            return false;
-        });
-    };
-
-    return ResetCode;
+	return ResetCode;
 });

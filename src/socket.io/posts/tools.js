@@ -1,7 +1,6 @@
 'use strict';
 
 const nconf = require('nconf');
-
 const db = require('../../database');
 const posts = require('../../posts');
 const flags = require('../../flags');
@@ -13,86 +12,88 @@ const user = require('../../user');
 const utils = require('../../utils');
 
 module.exports = function (SocketPosts) {
-    SocketPosts.loadPostTools = async function (socket, data) {
-        if (!data || !data.pid || !data.cid) {
-            throw new Error('[[error:invalid-data]]');
-        }
+	SocketPosts.loadPostTools = async function (socket, data) {
+		if (!data || !data.pid || !data.cid) {
+			throw new Error('[[error:invalid-data]]');
+		}
 
-        const results = await utils.promiseParallel({
-            posts: posts.getPostFields(data.pid, ['deleted', 'bookmarks', 'uid', 'ip', 'flagId']),
-            isAdmin: user.isAdministrator(socket.uid),
-            isGlobalMod: user.isGlobalModerator(socket.uid),
-            isModerator: user.isModerator(socket.uid, data.cid),
-            canEdit: privileges.posts.canEdit(data.pid, socket.uid),
-            canDelete: privileges.posts.canDelete(data.pid, socket.uid),
-            canPurge: privileges.posts.canPurge(data.pid, socket.uid),
-            canFlag: privileges.posts.canFlag(data.pid, socket.uid),
-            flagged: flags.exists('post', data.pid, socket.uid), // specifically, whether THIS calling user flagged
-            bookmarked: posts.hasBookmarked(data.pid, socket.uid),
-            pinned: posts.hasPinned(data.pid, socket.uid),
-            postSharing: social.getActivePostSharing(),
-            history: posts.diffs.exists(data.pid),
-            canViewInfo: privileges.global.can('view:users:info', socket.uid),
-            // Is the user also the topic owner?
-            isTopicOP: posts.isTopicOP(data.pid, socket.uid),
-        });
+		const results = await utils.promiseParallel({
+			posts: posts.getPostFields(data.pid, ['deleted', 'bookmarks', 'uid', 'ip', 'flagId']),
+			isAdmin: user.isAdministrator(socket.uid),
+			isGlobalMod: user.isGlobalModerator(socket.uid),
+			isModerator: user.isModerator(socket.uid, data.cid),
+			canEdit: privileges.posts.canEdit(data.pid, socket.uid),
+			canDelete: privileges.posts.canDelete(data.pid, socket.uid),
+			canPurge: privileges.posts.canPurge(data.pid, socket.uid),
+			canFlag: privileges.posts.canFlag(data.pid, socket.uid),
+			flagged: flags.exists('post', data.pid, socket.uid), // Specifically, whether THIS calling user flagged
+			bookmarked: posts.hasBookmarked(data.pid, socket.uid),
+			pinned: posts.hasPinned(data.pid, socket.uid),
+			postSharing: social.getActivePostSharing(),
+			history: posts.diffs.exists(data.pid),
+			canViewInfo: privileges.global.can('view:users:info', socket.uid),
+			// Is the user also the topic owner?
+			isTopicOP: posts.isTopicOP(data.pid, socket.uid),
+		});
 
-        const postData = results.posts;
-        postData.absolute_url = `${nconf.get('url')}/post/${data.pid}`;
-        postData.bookmarked = results.bookmarked;
-        postData.selfPost = socket.uid && socket.uid === postData.uid;
-        postData.displayPin = results.isTopicOP || results.isAdmin || results.isGlobalMod || results.isModerator;
-        postData.display_edit_tools = results.canEdit.flag;
-        postData.display_delete_tools = results.canDelete.flag;
-        postData.display_purge_tools = results.canPurge;
-        postData.display_flag_tools = socket.uid && results.canFlag.flag;
-        postData.display_moderator_tools = postData.display_edit_tools || postData.display_delete_tools;
-        postData.display_move_tools = results.isAdmin || results.isModerator;
-        postData.display_change_owner_tools = results.isAdmin || results.isModerator;
-        postData.display_ip_ban = (results.isAdmin || results.isGlobalMod) && !postData.selfPost;
-        postData.display_history = results.history;
-        postData.flags = {
-            flagId: parseInt(results.posts.flagId, 10) || null,
-            can: results.canFlag.flag,
-            exists: !!results.posts.flagId,
-            flagged: results.flagged,
-            state: await db.getObjectField(`flag:${postData.flagId}`, 'state'),
-        };
+		const postData = results.posts;
+		postData.absolute_url = `${nconf.get('url')}/post/${data.pid}`;
+		postData.bookmarked = results.bookmarked;
+		postData.selfPost = socket.uid && socket.uid === postData.uid;
+		postData.displayPin = results.isTopicOP || results.isAdmin || results.isGlobalMod || results.isModerator;
+		postData.display_edit_tools = results.canEdit.flag;
+		postData.display_delete_tools = results.canDelete.flag;
+		postData.display_purge_tools = results.canPurge;
+		postData.display_flag_tools = socket.uid && results.canFlag.flag;
+		postData.display_moderator_tools = postData.display_edit_tools || postData.display_delete_tools;
+		postData.display_move_tools = results.isAdmin || results.isModerator;
+		postData.display_change_owner_tools = results.isAdmin || results.isModerator;
+		postData.display_ip_ban = (results.isAdmin || results.isGlobalMod) && !postData.selfPost;
+		postData.display_history = results.history;
+		postData.flags = {
+			flagId: Number.parseInt(results.posts.flagId, 10) || null,
+			can: results.canFlag.flag,
+			exists: Boolean(results.posts.flagId),
+			flagged: results.flagged,
+			state: await db.getObjectField(`flag:${postData.flagId}`, 'state'),
+		};
 
-        if (!results.isAdmin && !results.canViewInfo) {
-            postData.ip = undefined;
-        }
-        const { tools } = await plugins.hooks.fire('filter:post.tools', {
-            pid: data.pid,
-            post: postData,
-            uid: socket.uid,
-            tools: [],
-        });
-        postData.tools = tools;
+		if (!results.isAdmin && !results.canViewInfo) {
+			postData.ip = undefined;
+		}
 
-        return results;
-    };
+		const {tools} = await plugins.hooks.fire('filter:post.tools', {
+			pid: data.pid,
+			post: postData,
+			uid: socket.uid,
+			tools: [],
+		});
+		postData.tools = tools;
 
-    SocketPosts.changeOwner = async function (socket, data) {
-        if (!data || !Array.isArray(data.pids) || !data.toUid) {
-            throw new Error('[[error:invalid-data]]');
-        }
-        const isAdminOrGlobalMod = await user.isAdminOrGlobalMod(socket.uid);
-        if (!isAdminOrGlobalMod) {
-            throw new Error('[[error:no-privileges]]');
-        }
+		return results;
+	};
 
-        const postData = await posts.changeOwner(data.pids, data.toUid);
-        const logs = postData.map(({ pid, uid, cid }) => (events.log({
-            type: 'post-change-owner',
-            uid: socket.uid,
-            ip: socket.ip,
-            targetUid: data.toUid,
-            pid: pid,
-            originalUid: uid,
-            cid: cid,
-        })));
+	SocketPosts.changeOwner = async function (socket, data) {
+		if (!data || !Array.isArray(data.pids) || !data.toUid) {
+			throw new Error('[[error:invalid-data]]');
+		}
 
-        await Promise.all(logs);
-    };
+		const isAdminOrGlobalModule = await user.isAdminOrGlobalMod(socket.uid);
+		if (!isAdminOrGlobalModule) {
+			throw new Error('[[error:no-privileges]]');
+		}
+
+		const postData = await posts.changeOwner(data.pids, data.toUid);
+		const logs = postData.map(({pid, uid, cid}) => (events.log({
+			type: 'post-change-owner',
+			uid: socket.uid,
+			ip: socket.ip,
+			targetUid: data.toUid,
+			pid,
+			originalUid: uid,
+			cid,
+		})));
+
+		await Promise.all(logs);
+	};
 };

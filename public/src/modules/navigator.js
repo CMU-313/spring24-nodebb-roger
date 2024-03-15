@@ -1,646 +1,665 @@
 'use strict';
 
-define('navigator', ['forum/pagination', 'components', 'hooks', 'alerts'], function (pagination, components, hooks, alerts) {
-    const navigator = {};
-    let index = 0;
-    let count = 0;
-    let navigatorUpdateTimeoutId;
+define('navigator', ['forum/pagination', 'components', 'hooks', 'alerts'], (pagination, components, hooks, alerts) => {
+	const navigator = {};
+	let index = 0;
+	let count = 0;
+	let navigatorUpdateTimeoutId;
 
-    let renderPostIntervalId;
-    let touchX;
-    let touchY;
-    let renderPostIndex;
-    let isNavigating = false;
-    let firstMove = true;
+	let renderPostIntervalId;
+	let touchX;
+	let touchY;
+	let renderPostIndex;
+	let isNavigating = false;
+	let firstMove = true;
 
-    navigator.scrollActive = false;
+	navigator.scrollActive = false;
 
-    let paginationBlockEl = $('.pagination-block');
-    let paginationTextEl = paginationBlockEl.find('.pagination-text');
-    let paginationBlockMeterEl = paginationBlockEl.find('meter');
-    let paginationBlockProgressEl = paginationBlockEl.find('.progress-bar');
-    let thumb;
-    let thumbText;
-    let thumbIcon;
-    let thumbIconHeight;
-    let thumbIconHalfHeight;
+	let paginationBlockElement = $('.pagination-block');
+	let paginationTextElement = paginationBlockElement.find('.pagination-text');
+	let paginationBlockMeterElement = paginationBlockElement.find('meter');
+	let paginationBlockProgressElement = paginationBlockElement.find('.progress-bar');
+	let thumb;
+	let thumbText;
+	let thumbIcon;
+	let thumbIconHeight;
+	let thumbIconHalfHeight;
 
-    $(window).on('action:ajaxify.start', function () {
-        $(window).off('keydown', onKeyDown);
-    });
+	$(window).on('action:ajaxify.start', () => {
+		$(window).off('keydown', onKeyDown);
+	});
 
-    navigator.init = function (selector, count, toTop, toBottom, callback) {
-        index = 0;
-        navigator.selector = selector;
-        navigator.callback = callback;
-        navigator.toTop = toTop || function () {};
-        navigator.toBottom = toBottom || function () {};
+	navigator.init = function (selector, count, toTop, toBottom, callback) {
+		index = 0;
+		navigator.selector = selector;
+		navigator.callback = callback;
+		navigator.toTop = toTop || function () {};
+		navigator.toBottom = toBottom || function () {};
 
-        paginationBlockEl = $('.pagination-block');
-        paginationTextEl = paginationBlockEl.find('.pagination-text');
-        paginationBlockMeterEl = paginationBlockEl.find('meter');
-        paginationBlockProgressEl = paginationBlockEl.find('.progress-bar');
+		paginationBlockElement = $('.pagination-block');
+		paginationTextElement = paginationBlockElement.find('.pagination-text');
+		paginationBlockMeterElement = paginationBlockElement.find('meter');
+		paginationBlockProgressElement = paginationBlockElement.find('.progress-bar');
 
-        thumbIcon = $('.scroller-thumb-icon');
-        thumbIconHeight = thumbIcon.height();
-        thumbIconHalfHeight = thumbIconHeight / 2;
-        thumb = $('.scroller-thumb');
-        thumbText = thumb.find('.thumb-text');
+		thumbIcon = $('.scroller-thumb-icon');
+		thumbIconHeight = thumbIcon.height();
+		thumbIconHalfHeight = thumbIconHeight / 2;
+		thumb = $('.scroller-thumb');
+		thumbText = thumb.find('.thumb-text');
 
-        $(window).off('scroll', navigator.delayedUpdate).on('scroll', navigator.delayedUpdate);
+		$(window).off('scroll', navigator.delayedUpdate).on('scroll', navigator.delayedUpdate);
 
-        paginationBlockEl.find('.dropdown-menu').off('click').on('click', function (e) {
-            e.stopPropagation();
-        });
+		paginationBlockElement.find('.dropdown-menu').off('click').on('click', e => {
+			e.stopPropagation();
+		});
 
-        paginationBlockEl.off('shown.bs.dropdown', '.wrapper').on('shown.bs.dropdown', '.wrapper', function () {
-            setTimeout(async function () {
-                if (utils.findBootstrapEnvironment() === 'lg') {
-                    $('.pagination-block input').focus();
-                }
-                const postCountInTopic = await socket.emit('topics.getPostCountInTopic', ajaxify.data.tid);
-                if (postCountInTopic > 0) {
-                    paginationBlockEl.find('#myNextPostBtn').removeAttr('disabled');
-                }
-            }, 100);
-        });
-        paginationBlockEl.find('.pageup').off('click').on('click', navigator.scrollUp);
-        paginationBlockEl.find('.pagedown').off('click').on('click', navigator.scrollDown);
-        paginationBlockEl.find('.pagetop').off('click').on('click', navigator.toTop);
-        paginationBlockEl.find('.pagebottom').off('click').on('click', navigator.toBottom);
-        paginationBlockEl.find('#myNextPostBtn').off('click').on('click', gotoMyNextPost);
+		paginationBlockElement.off('shown.bs.dropdown', '.wrapper').on('shown.bs.dropdown', '.wrapper', () => {
+			setTimeout(async () => {
+				if (utils.findBootstrapEnvironment() === 'lg') {
+					$('.pagination-block input').focus();
+				}
 
-        paginationBlockEl.find('input').on('keydown', function (e) {
-            if (e.which === 13) {
-                const input = $(this);
-                if (!utils.isNumber(input.val())) {
-                    input.val('');
-                    return;
-                }
+				const postCountInTopic = await socket.emit('topics.getPostCountInTopic', ajaxify.data.tid);
+				if (postCountInTopic > 0) {
+					paginationBlockElement.find('#myNextPostBtn').removeAttr('disabled');
+				}
+			}, 100);
+		});
+		paginationBlockElement.find('.pageup').off('click').on('click', navigator.scrollUp);
+		paginationBlockElement.find('.pagedown').off('click').on('click', navigator.scrollDown);
+		paginationBlockElement.find('.pagetop').off('click').on('click', navigator.toTop);
+		paginationBlockElement.find('.pagebottom').off('click').on('click', navigator.toBottom);
+		paginationBlockElement.find('#myNextPostBtn').off('click').on('click', gotoMyNextPost);
 
-                const index = parseInt(input.val(), 10);
-                const url = generateUrl(index);
-                input.val('');
-                $('.pagination-block .dropdown-toggle').trigger('click');
-                ajaxify.go(url);
-            }
-        });
+		paginationBlockElement.find('input').on('keydown', function (e) {
+			if (e.which === 13) {
+				const input = $(this);
+				if (!utils.isNumber(input.val())) {
+					input.val('');
+					return;
+				}
 
-        if (ajaxify.data.template.topic) {
-            handleScrollNav();
-        }
+				const index = Number.parseInt(input.val(), 10);
+				const url = generateUrl(index);
+				input.val('');
+				$('.pagination-block .dropdown-toggle').trigger('click');
+				ajaxify.go(url);
+			}
+		});
 
-        handleKeys();
+		if (ajaxify.data.template.topic) {
+			handleScrollNav();
+		}
 
-        navigator.setCount(count);
-        navigator.update(0);
-    };
+		handleKeys();
 
-    let lastNextIndex = 0;
-    async function gotoMyNextPost() {
-        async function getNext(startIndex) {
-            return await socket.emit('topics.getMyNextPostIndex', {
-                tid: ajaxify.data.tid,
-                index: Math.max(1, startIndex),
-                sort: config.topicPostSort,
-            });
-        }
-        if (ajaxify.data.template.topic) {
-            let nextIndex = await getNext(index);
-            if (lastNextIndex === nextIndex) { // handles last post in pagination
-                nextIndex = await getNext(nextIndex);
-            }
-            if (nextIndex && index !== nextIndex + 1) {
-                lastNextIndex = nextIndex;
-                $(window).one('action:ajaxify.end', function () {
-                    if (paginationBlockEl.find('.dropdown-menu').is(':hidden')) {
-                        paginationBlockEl.find('.dropdown-toggle').dropdown('toggle');
-                    }
-                });
-                navigator.scrollToIndex(nextIndex, true, 0);
-            } else {
-                alerts.alert({
-                    message: '[[topic:no-more-next-post]]',
-                    type: 'info',
-                });
+		navigator.setCount(count);
+		navigator.update(0);
+	};
 
-                lastNextIndex = 1;
-            }
-        }
-    }
+	let lastNextIndex = 0;
+	async function gotoMyNextPost() {
+		async function getNext(startIndex) {
+			return await socket.emit('topics.getMyNextPostIndex', {
+				tid: ajaxify.data.tid,
+				index: Math.max(1, startIndex),
+				sort: config.topicPostSort,
+			});
+		}
 
-    function clampTop(newTop) {
-        const parent = thumb.parent();
-        const parentOffset = parent.offset();
-        if (newTop < parentOffset.top) {
-            newTop = parentOffset.top;
-        } else if (newTop > parentOffset.top + parent.height() - thumbIconHeight) {
-            newTop = parentOffset.top + parent.height() - thumbIconHeight;
-        }
-        return newTop;
-    }
+		if (ajaxify.data.template.topic) {
+			let nextIndex = await getNext(index);
+			if (lastNextIndex === nextIndex) { // Handles last post in pagination
+				nextIndex = await getNext(nextIndex);
+			}
 
-    function setThumbToIndex(index) {
-        if (!thumb.length || thumb.is(':hidden')) {
-            return;
-        }
-        const parent = thumb.parent();
-        const parentOffset = parent.offset();
-        let percent = (index - 1) / ajaxify.data.postcount;
-        if (index === count) {
-            percent = 1;
-        }
-        const newTop = clampTop(parentOffset.top + ((parent.height() - thumbIconHeight) * percent));
+			if (nextIndex && index !== nextIndex + 1) {
+				lastNextIndex = nextIndex;
+				$(window).one('action:ajaxify.end', () => {
+					if (paginationBlockElement.find('.dropdown-menu').is(':hidden')) {
+						paginationBlockElement.find('.dropdown-toggle').dropdown('toggle');
+					}
+				});
+				navigator.scrollToIndex(nextIndex, true, 0);
+			} else {
+				alerts.alert({
+					message: '[[topic:no-more-next-post]]',
+					type: 'info',
+				});
 
-        const offset = { top: newTop, left: thumb.offset().left };
-        thumb.offset(offset);
-        thumbText.text(index + '/' + ajaxify.data.postcount);
-        renderPost(index);
-    }
+				lastNextIndex = 1;
+			}
+		}
+	}
 
-    function handleScrollNav() {
-        if (!thumb.length) {
-            return;
-        }
+	function clampTop(newTop) {
+		const parent = thumb.parent();
+		const parentOffset = parent.offset();
+		if (newTop < parentOffset.top) {
+			newTop = parentOffset.top;
+		} else if (newTop > parentOffset.top + parent.height() - thumbIconHeight) {
+			newTop = parentOffset.top + parent.height() - thumbIconHeight;
+		}
 
-        const parent = thumb.parent();
-        parent.on('click', function (ev) {
-            if ($(ev.target).hasClass('scroller-container')) {
-                const index = calculateIndexFromY(ev.pageY);
-                navigator.scrollToIndex(index - 1, true, 0);
-                return false;
-            }
-        });
+		return newTop;
+	}
 
-        function calculateIndexFromY(y) {
-            const newTop = clampTop(y - thumbIconHalfHeight);
-            const parentOffset = parent.offset();
-            const percent = (newTop - parentOffset.top) / (parent.height() - thumbIconHeight);
-            index = Math.max(1, Math.ceil(ajaxify.data.postcount * percent));
-            return index > ajaxify.data.postcount ? ajaxify.data.count : index;
-        }
+	function setThumbToIndex(index) {
+		if (thumb.length === 0 || thumb.is(':hidden')) {
+			return;
+		}
 
-        let mouseDragging = false;
-        hooks.on('action:ajaxify.end', function () {
-            renderPostIndex = null;
-        });
-        $('.pagination-block .dropdown-menu').parent().on('shown.bs.dropdown', function () {
-            setThumbToIndex(index);
-        });
+		const parent = thumb.parent();
+		const parentOffset = parent.offset();
+		let percent = (index - 1) / ajaxify.data.postcount;
+		if (index === count) {
+			percent = 1;
+		}
 
-        thumb.on('mousedown', function () {
-            mouseDragging = true;
-            $(window).on('mousemove', mousemove);
-            firstMove = true;
-        });
+		const newTop = clampTop(parentOffset.top + ((parent.height() - thumbIconHeight) * percent));
 
-        function mouseup() {
-            $(window).off('mousemove', mousemove);
-            if (mouseDragging) {
-                navigator.scrollToIndex(index - 1, true, 0);
-                paginationBlockEl.find('[data-toggle="dropdown"]').trigger('click');
-            }
-            clearRenderInterval();
-            mouseDragging = false;
-            firstMove = false;
-        }
+		const offset = {top: newTop, left: thumb.offset().left};
+		thumb.offset(offset);
+		thumbText.text(index + '/' + ajaxify.data.postcount);
+		renderPost(index);
+	}
 
-        function mousemove(ev) {
-            const newTop = clampTop(ev.pageY - thumbIconHalfHeight);
-            thumb.offset({ top: newTop, left: thumb.offset().left });
-            const index = calculateIndexFromY(ev.pageY);
-            navigator.updateTextAndProgressBar();
-            thumbText.text(index + '/' + ajaxify.data.postcount);
-            if (firstMove) {
-                delayedRenderPost();
-            }
-            firstMove = false;
-            ev.stopPropagation();
-            return false;
-        }
+	function handleScrollNav() {
+		if (thumb.length === 0) {
+			return;
+		}
 
-        function delayedRenderPost() {
-            clearRenderInterval();
-            renderPostIntervalId = setInterval(function () {
-                renderPost(index);
-            }, 250);
-        }
+		const parent = thumb.parent();
+		parent.on('click', event => {
+			if ($(event.target).hasClass('scroller-container')) {
+				const index = calculateIndexFromY(event.pageY);
+				navigator.scrollToIndex(index - 1, true, 0);
+				return false;
+			}
+		});
 
-        $(window).off('mousemove', mousemove);
-        $(window).off('mouseup', mouseup).on('mouseup', mouseup);
+		function calculateIndexFromY(y) {
+			const newTop = clampTop(y - thumbIconHalfHeight);
+			const parentOffset = parent.offset();
+			const percent = (newTop - parentOffset.top) / (parent.height() - thumbIconHeight);
+			index = Math.max(1, Math.ceil(ajaxify.data.postcount * percent));
+			return index > ajaxify.data.postcount ? ajaxify.data.count : index;
+		}
 
-        thumb.on('touchstart', function (ev) {
-            isNavigating = true;
-            touchX = Math.min($(window).width(), Math.max(0, ev.touches[0].clientX));
-            touchY = Math.min($(window).height(), Math.max(0, ev.touches[0].clientY));
-            firstMove = true;
-        });
+		let mouseDragging = false;
+		hooks.on('action:ajaxify.end', () => {
+			renderPostIndex = null;
+		});
+		$('.pagination-block .dropdown-menu').parent().on('shown.bs.dropdown', () => {
+			setThumbToIndex(index);
+		});
 
-        thumb.on('touchmove', function (ev) {
-            const windowWidth = $(window).width();
-            const windowHeight = $(window).height();
-            const deltaX = Math.abs(touchX - Math.min(windowWidth, Math.max(0, ev.touches[0].clientX)));
-            const deltaY = Math.abs(touchY - Math.min(windowHeight, Math.max(0, ev.touches[0].clientY)));
-            touchX = Math.min(windowWidth, Math.max(0, ev.touches[0].clientX));
-            touchY = Math.min(windowHeight, Math.max(0, ev.touches[0].clientY));
+		thumb.on('mousedown', () => {
+			mouseDragging = true;
+			$(window).on('mousemove', mousemove);
+			firstMove = true;
+		});
 
-            if (deltaY >= deltaX && firstMove) {
-                isNavigating = true;
-                delayedRenderPost();
-            }
+		function mouseup() {
+			$(window).off('mousemove', mousemove);
+			if (mouseDragging) {
+				navigator.scrollToIndex(index - 1, true, 0);
+				paginationBlockElement.find('[data-toggle="dropdown"]').trigger('click');
+			}
 
-            if (isNavigating && ev.cancelable) {
-                ev.preventDefault();
-                ev.stopPropagation();
-                const newTop = clampTop(touchY + $(window).scrollTop() - thumbIconHalfHeight);
-                thumb.offset({ top: newTop, left: thumb.offset().left });
-                const index = calculateIndexFromY(touchY + $(window).scrollTop());
-                navigator.updateTextAndProgressBar();
-                thumbText.text(index + '/' + ajaxify.data.postcount);
-                if (firstMove) {
-                    renderPost(index);
-                }
-            }
-            firstMove = false;
-        });
+			clearRenderInterval();
+			mouseDragging = false;
+			firstMove = false;
+		}
 
-        thumb.on('touchend', function () {
-            clearRenderInterval();
-            if (isNavigating) {
-                navigator.scrollToIndex(index - 1, true, 0);
-                isNavigating = false;
-                paginationBlockEl.find('[data-toggle="dropdown"]').trigger('click');
-            }
-        });
-    }
+		function mousemove(event) {
+			const newTop = clampTop(event.pageY - thumbIconHalfHeight);
+			thumb.offset({top: newTop, left: thumb.offset().left});
+			const index = calculateIndexFromY(event.pageY);
+			navigator.updateTextAndProgressBar();
+			thumbText.text(index + '/' + ajaxify.data.postcount);
+			if (firstMove) {
+				delayedRenderPost();
+			}
 
-    function clearRenderInterval() {
-        if (renderPostIntervalId) {
-            clearInterval(renderPostIntervalId);
-            renderPostIntervalId = 0;
-        }
-    }
+			firstMove = false;
+			event.stopPropagation();
+			return false;
+		}
 
-    function renderPost(index, callback) {
-        callback = callback || function () {};
-        if (renderPostIndex === index || paginationBlockEl.find('.post-content').is(':hidden')) {
-            return;
-        }
-        renderPostIndex = index;
+		function delayedRenderPost() {
+			clearRenderInterval();
+			renderPostIntervalId = setInterval(() => {
+				renderPost(index);
+			}, 250);
+		}
 
-        socket.emit('posts.getPostSummaryByIndex', { tid: ajaxify.data.tid, index: index - 1 }, function (err, postData) {
-            if (err) {
-                return alerts.error(err);
-            }
-            app.parseAndTranslate('partials/topic/navigation-post', { post: postData }, function (html) {
-                paginationBlockEl
-                    .find('.post-content')
-                    .html(html)
-                    .find('.timeago').timeago();
-            });
+		$(window).off('mousemove', mousemove);
+		$(window).off('mouseup', mouseup).on('mouseup', mouseup);
 
-            callback();
-        });
-    }
+		thumb.on('touchstart', event => {
+			isNavigating = true;
+			touchX = Math.min($(window).width(), Math.max(0, event.touches[0].clientX));
+			touchY = Math.min($(window).height(), Math.max(0, event.touches[0].clientY));
+			firstMove = true;
+		});
 
-    function handleKeys() {
-        if (!config.usePagination) {
-            $(window).off('keydown', onKeyDown).on('keydown', onKeyDown);
-        }
-    }
+		thumb.on('touchmove', event => {
+			const windowWidth = $(window).width();
+			const windowHeight = $(window).height();
+			const deltaX = Math.abs(touchX - Math.min(windowWidth, Math.max(0, event.touches[0].clientX)));
+			const deltaY = Math.abs(touchY - Math.min(windowHeight, Math.max(0, event.touches[0].clientY)));
+			touchX = Math.min(windowWidth, Math.max(0, event.touches[0].clientX));
+			touchY = Math.min(windowHeight, Math.max(0, event.touches[0].clientY));
 
-    function onKeyDown(ev) {
-        if (ev.target.nodeName === 'BODY') {
-            if (ev.shiftKey || ev.ctrlKey || ev.altKey) {
-                return;
-            }
-            if (ev.which === 36 && navigator.toTop) { // home key
-                navigator.toTop();
-                return false;
-            } else if (ev.which === 35 && navigator.toBottom) { // end key
-                navigator.toBottom();
-                return false;
-            }
-        }
-    }
+			if (deltaY >= deltaX && firstMove) {
+				isNavigating = true;
+				delayedRenderPost();
+			}
 
-    function generateUrl(index) {
-        const pathname = window.location.pathname.replace(config.relative_path, '');
-        const parts = pathname.split('/');
-        return parts[1] + '/' + parts[2] + '/' + parts[3] + (index ? '/' + index : '');
-    }
+			if (isNavigating && event.cancelable) {
+				event.preventDefault();
+				event.stopPropagation();
+				const newTop = clampTop(touchY + $(window).scrollTop() - thumbIconHalfHeight);
+				thumb.offset({top: newTop, left: thumb.offset().left});
+				const index = calculateIndexFromY(touchY + $(window).scrollTop());
+				navigator.updateTextAndProgressBar();
+				thumbText.text(index + '/' + ajaxify.data.postcount);
+				if (firstMove) {
+					renderPost(index);
+				}
+			}
 
-    navigator.getCount = () => count;
+			firstMove = false;
+		});
 
-    navigator.setCount = function (value) {
-        value = parseInt(value, 10);
-        if (value === count) {
-            return;
-        }
-        count = value;
-        navigator.updateTextAndProgressBar();
-    };
+		thumb.on('touchend', () => {
+			clearRenderInterval();
+			if (isNavigating) {
+				navigator.scrollToIndex(index - 1, true, 0);
+				isNavigating = false;
+				paginationBlockElement.find('[data-toggle="dropdown"]').trigger('click');
+			}
+		});
+	}
 
-    navigator.show = function () {
-        toggle(true);
-    };
+	function clearRenderInterval() {
+		if (renderPostIntervalId) {
+			clearInterval(renderPostIntervalId);
+			renderPostIntervalId = 0;
+		}
+	}
 
-    navigator.disable = function () {
-        count = 0;
-        index = 1;
-        navigator.callback = null;
-        navigator.selector = null;
-        $(window).off('scroll', navigator.delayedUpdate);
+	function renderPost(index, callback) {
+		callback ||= function () {};
+		if (renderPostIndex === index || paginationBlockElement.find('.post-content').is(':hidden')) {
+			return;
+		}
 
-        toggle(false);
-    };
+		renderPostIndex = index;
 
-    function toggle(flag) {
-        const path = ajaxify.removeRelativePath(window.location.pathname.slice(1));
-        if (flag && (!path.startsWith('topic') && !path.startsWith('category'))) {
-            return;
-        }
+		socket.emit('posts.getPostSummaryByIndex', {tid: ajaxify.data.tid, index: index - 1}, (error, postData) => {
+			if (error) {
+				return alerts.error(error);
+			}
 
-        paginationBlockEl.toggleClass('ready', flag);
-    }
+			app.parseAndTranslate('partials/topic/navigation-post', {post: postData}, html => {
+				paginationBlockElement
+					.find('.post-content')
+					.html(html)
+					.find('.timeago').timeago();
+			});
 
-    navigator.delayedUpdate = function () {
-        if (!navigatorUpdateTimeoutId) {
-            navigatorUpdateTimeoutId = setTimeout(function () {
-                navigator.update();
-                navigatorUpdateTimeoutId = undefined;
-            }, 100);
-        }
-    };
+			callback();
+		});
+	}
 
-    navigator.update = function (threshold) {
-        /*
+	function handleKeys() {
+		if (!config.usePagination) {
+			$(window).off('keydown', onKeyDown).on('keydown', onKeyDown);
+		}
+	}
+
+	function onKeyDown(event) {
+		if (event.target.nodeName === 'BODY') {
+			if (event.shiftKey || event.ctrlKey || event.altKey) {
+				return;
+			}
+
+			if (event.which === 36 && navigator.toTop) { // Home key
+				navigator.toTop();
+				return false;
+			}
+
+			if (event.which === 35 && navigator.toBottom) { // End key
+				navigator.toBottom();
+				return false;
+			}
+		}
+	}
+
+	function generateUrl(index) {
+		const pathname = window.location.pathname.replace(config.relative_path, '');
+		const parts = pathname.split('/');
+		return parts[1] + '/' + parts[2] + '/' + parts[3] + (index ? '/' + index : '');
+	}
+
+	navigator.getCount = () => count;
+
+	navigator.setCount = function (value) {
+		value = Number.parseInt(value, 10);
+		if (value === count) {
+			return;
+		}
+
+		count = value;
+		navigator.updateTextAndProgressBar();
+	};
+
+	navigator.show = function () {
+		toggle(true);
+	};
+
+	navigator.disable = function () {
+		count = 0;
+		index = 1;
+		navigator.callback = null;
+		navigator.selector = null;
+		$(window).off('scroll', navigator.delayedUpdate);
+
+		toggle(false);
+	};
+
+	function toggle(flag) {
+		const path = ajaxify.removeRelativePath(window.location.pathname.slice(1));
+		if (flag && (!path.startsWith('topic') && !path.startsWith('category'))) {
+			return;
+		}
+
+		paginationBlockElement.toggleClass('ready', flag);
+	}
+
+	navigator.delayedUpdate = function () {
+		navigatorUpdateTimeoutId ||= setTimeout(() => {
+			navigator.update();
+			navigatorUpdateTimeoutId = undefined;
+		}, 100);
+	};
+
+	navigator.update = function (threshold) {
+		/*
             The "threshold" is defined as the distance from the top of the page to
             a spot where a user is expecting to begin reading.
         */
-        threshold = typeof threshold === 'number' ? threshold : undefined;
-        let newIndex = index;
-        const els = $(navigator.selector);
-        if (els.length) {
-            newIndex = parseInt(els.first().attr('data-index'), 10) + 1;
-        }
+		threshold = typeof threshold === 'number' ? threshold : undefined;
+		let newIndex = index;
+		const els = $(navigator.selector);
+		if (els.length > 0) {
+			newIndex = Number.parseInt(els.first().attr('data-index'), 10) + 1;
+		}
 
-        const scrollTop = $(window).scrollTop();
-        const windowHeight = $(window).height();
-        const documentHeight = $(document).height();
-        const middleOfViewport = scrollTop + (windowHeight / 2);
-        let previousDistance = Number.MAX_VALUE;
-        els.each(function () {
-            const $this = $(this);
-            const elIndex = parseInt($this.attr('data-index'), 10);
-            if (elIndex >= 0) {
-                const distanceToMiddle =
-                    Math.abs(middleOfViewport - ($this.offset().top + ($this.outerHeight(true) / 2)));
+		const scrollTop = $(window).scrollTop();
+		const windowHeight = $(window).height();
+		const documentHeight = $(document).height();
+		const middleOfViewport = scrollTop + (windowHeight / 2);
+		let previousDistance = Number.MAX_VALUE;
+		els.each(function () {
+			const $this = $(this);
+			const elementIndex = Number.parseInt($this.attr('data-index'), 10);
+			if (elementIndex >= 0) {
+				const distanceToMiddle
+                    = Math.abs(middleOfViewport - ($this.offset().top + ($this.outerHeight(true) / 2)));
 
-                if (distanceToMiddle > previousDistance) {
-                    return false;
-                }
+				if (distanceToMiddle > previousDistance) {
+					return false;
+				}
 
-                if (distanceToMiddle < previousDistance) {
-                    newIndex = elIndex + 1;
-                    previousDistance = distanceToMiddle;
-                }
-            }
-        });
+				if (distanceToMiddle < previousDistance) {
+					newIndex = elementIndex + 1;
+					previousDistance = distanceToMiddle;
+				}
+			}
+		});
 
-        const atTop = scrollTop === 0 && parseInt(els.first().attr('data-index'), 10) === 0;
-        const nearBottom = scrollTop + windowHeight > documentHeight - 100 && parseInt(els.last().attr('data-index'), 10) === count - 1;
+		const atTop = scrollTop === 0 && Number.parseInt(els.first().attr('data-index'), 10) === 0;
+		const nearBottom = scrollTop + windowHeight > documentHeight - 100 && Number.parseInt(els.last().attr('data-index'), 10) === count - 1;
 
-        if (atTop) {
-            newIndex = 1;
-        } else if (nearBottom) {
-            newIndex = count;
-        }
+		if (atTop) {
+			newIndex = 1;
+		} else if (nearBottom) {
+			newIndex = count;
+		}
 
-        // If a threshold is undefined, try to determine one based on new index
-        if (threshold === undefined && ajaxify.data.template.topic) {
-            if (atTop) {
-                threshold = 0;
-            } else {
-                const anchorEl = components.get('post/anchor', index - 1);
-                if (anchorEl.length) {
-                    const anchorRect = anchorEl.get(0).getBoundingClientRect();
-                    threshold = anchorRect.top;
-                }
-            }
-        }
+		// If a threshold is undefined, try to determine one based on new index
+		if (threshold === undefined && ajaxify.data.template.topic) {
+			if (atTop) {
+				threshold = 0;
+			} else {
+				const anchorElement = components.get('post/anchor', index - 1);
+				if (anchorElement.length > 0) {
+					const anchorRect = anchorElement.get(0).getBoundingClientRect();
+					threshold = anchorRect.top;
+				}
+			}
+		}
 
-        if (typeof navigator.callback === 'function') {
-            navigator.callback(newIndex, count, threshold);
-        }
+		if (typeof navigator.callback === 'function') {
+			navigator.callback(newIndex, count, threshold);
+		}
 
-        if (newIndex !== index) {
-            index = newIndex;
-            navigator.updateTextAndProgressBar();
-            setThumbToIndex(index);
-        }
+		if (newIndex !== index) {
+			index = newIndex;
+			navigator.updateTextAndProgressBar();
+			setThumbToIndex(index);
+		}
 
-        toggle(!!count);
-    };
+		toggle(Boolean(count));
+	};
 
-    navigator.getIndex = () => index;
+	navigator.getIndex = () => index;
 
-    navigator.setIndex = (newIndex) => {
-        index = newIndex + 1;
-        navigator.updateTextAndProgressBar();
-        setThumbToIndex(index);
-    };
+	navigator.setIndex = newIndex => {
+		index = newIndex + 1;
+		navigator.updateTextAndProgressBar();
+		setThumbToIndex(index);
+	};
 
-    navigator.updateTextAndProgressBar = function () {
-        if (!utils.isNumber(index)) {
-            return;
-        }
-        index = index > count ? count : index;
-        paginationTextEl.translateHtml('[[global:pagination.out_of, ' + index + ', ' + count + ']]');
-        const fraction = (index - 1) / (count - 1 || 1);
-        paginationBlockMeterEl.val(fraction);
-        paginationBlockProgressEl.width((fraction * 100) + '%');
-    };
+	navigator.updateTextAndProgressBar = function () {
+		if (!utils.isNumber(index)) {
+			return;
+		}
 
-    navigator.scrollUp = function () {
-        const $window = $(window);
+		index = index > count ? count : index;
+		paginationTextElement.translateHtml('[[global:pagination.out_of, ' + index + ', ' + count + ']]');
+		const fraction = (index - 1) / (count - 1 || 1);
+		paginationBlockMeterElement.val(fraction);
+		paginationBlockProgressElement.width((fraction * 100) + '%');
+	};
 
-        if (config.usePagination) {
-            const atTop = $window.scrollTop() <= 0;
-            if (atTop) {
-                return pagination.previousPage(function () {
-                    $('body,html').scrollTop($(document).height() - $window.height());
-                });
-            }
-        }
-        $('body,html').animate({
-            scrollTop: $window.scrollTop() - $window.height(),
-        });
-    };
+	navigator.scrollUp = function () {
+		const $window = $(window);
 
-    navigator.scrollDown = function () {
-        const $window = $(window);
+		if (config.usePagination) {
+			const atTop = $window.scrollTop() <= 0;
+			if (atTop) {
+				return pagination.previousPage(() => {
+					$('body,html').scrollTop($(document).height() - $window.height());
+				});
+			}
+		}
 
-        if (config.usePagination) {
-            const atBottom = $window.scrollTop() >= $(document).height() - $window.height();
-            if (atBottom) {
-                return pagination.nextPage();
-            }
-        }
-        $('body,html').animate({
-            scrollTop: $window.scrollTop() + $window.height(),
-        });
-    };
+		$('body,html').animate({
+			scrollTop: $window.scrollTop() - $window.height(),
+		});
+	};
 
-    navigator.scrollTop = function (index) {
-        if ($(navigator.selector + '[data-index="' + index + '"]').length) {
-            navigator.scrollToIndex(index, true);
-        } else {
-            ajaxify.go(generateUrl());
-        }
-    };
+	navigator.scrollDown = function () {
+		const $window = $(window);
 
-    navigator.scrollBottom = function (index) {
-        if (parseInt(index, 10) < 0) {
-            return;
-        }
+		if (config.usePagination) {
+			const atBottom = $window.scrollTop() >= $(document).height() - $window.height();
+			if (atBottom) {
+				return pagination.nextPage();
+			}
+		}
 
-        if ($(navigator.selector + '[data-index="' + index + '"]').length) {
-            navigator.scrollToIndex(index, true);
-        } else {
-            index = parseInt(index, 10) + 1;
-            ajaxify.go(generateUrl(index));
-        }
-    };
+		$('body,html').animate({
+			scrollTop: $window.scrollTop() + $window.height(),
+		});
+	};
 
-    navigator.scrollToIndex = function (index, highlight, duration) {
-        const inTopic = !!components.get('topic').length;
-        const inCategory = !!components.get('category').length;
+	navigator.scrollTop = function (index) {
+		if ($(navigator.selector + '[data-index="' + index + '"]').length > 0) {
+			navigator.scrollToIndex(index, true);
+		} else {
+			ajaxify.go(generateUrl());
+		}
+	};
 
-        if (!utils.isNumber(index) || (!inTopic && !inCategory)) {
-            return;
-        }
+	navigator.scrollBottom = function (index) {
+		if (Number.parseInt(index, 10) < 0) {
+			return;
+		}
 
-        duration = duration !== undefined ? duration : 400;
-        navigator.scrollActive = true;
+		if ($(navigator.selector + '[data-index="' + index + '"]').length > 0) {
+			navigator.scrollToIndex(index, true);
+		} else {
+			index = Number.parseInt(index, 10) + 1;
+			ajaxify.go(generateUrl(index));
+		}
+	};
 
-        // if in topic and item already on page
-        if (inTopic && components.get('post/anchor', index).length) {
-            return navigator.scrollToPostIndex(index, highlight, duration);
-        }
+	navigator.scrollToIndex = function (index, highlight, duration) {
+		const inTopic = components.get('topic').length > 0;
+		const inCategory = components.get('category').length > 0;
 
-        // if in category and item alreay on page
-        if (inCategory && $('[component="category/topic"][data-index="' + index + '"]').length) {
-            return navigator.scrollToTopicIndex(index, highlight, duration);
-        }
+		if (!utils.isNumber(index) || (!inTopic && !inCategory)) {
+			return;
+		}
 
-        if (!config.usePagination) {
-            navigator.scrollActive = false;
-            index = parseInt(index, 10) + 1;
-            ajaxify.go(generateUrl(index));
-            return;
-        }
+		duration = duration === undefined ? 400 : duration;
+		navigator.scrollActive = true;
 
-        const scrollMethod = inTopic ? navigator.scrollToPostIndex : navigator.scrollToTopicIndex;
+		// If in topic and item already on page
+		if (inTopic && components.get('post/anchor', index).length > 0) {
+			return navigator.scrollToPostIndex(index, highlight, duration);
+		}
 
-        const page = 1 + Math.floor(index / config.postsPerPage);
-        if (parseInt(page, 10) !== ajaxify.data.pagination.currentPage) {
-            pagination.loadPage(page, function () {
-                scrollMethod(index, highlight, duration);
-            });
-        } else {
-            scrollMethod(index, highlight, duration);
-        }
-    };
+		// If in category and item alreay on page
+		if (inCategory && $('[component="category/topic"][data-index="' + index + '"]').length > 0) {
+			return navigator.scrollToTopicIndex(index, highlight, duration);
+		}
 
-    navigator.scrollToPostIndex = function (postIndex, highlight, duration) {
-        const scrollTo = components.get('post', 'index', postIndex);
-        navigator.scrollToElement(scrollTo, highlight, duration, postIndex);
-    };
+		if (!config.usePagination) {
+			navigator.scrollActive = false;
+			index = Number.parseInt(index, 10) + 1;
+			ajaxify.go(generateUrl(index));
+			return;
+		}
 
-    navigator.scrollToTopicIndex = function (topicIndex, highlight, duration) {
-        const scrollTo = $('[component="category/topic"][data-index="' + topicIndex + '"]');
-        navigator.scrollToElement(scrollTo, highlight, duration, topicIndex);
-    };
+		const scrollMethod = inTopic ? navigator.scrollToPostIndex : navigator.scrollToTopicIndex;
 
-    navigator.scrollToElement = async (scrollTo, highlight, duration, newIndex = null) => {
-        if (!scrollTo.length) {
-            navigator.scrollActive = false;
-            return;
-        }
+		const page = 1 + Math.floor(index / config.postsPerPage);
+		if (Number.parseInt(page, 10) === ajaxify.data.pagination.currentPage) {
+			scrollMethod(index, highlight, duration);
+		} else {
+			pagination.loadPage(page, () => {
+				scrollMethod(index, highlight, duration);
+			});
+		}
+	};
 
-        await hooks.fire('filter:navigator.scroll', { scrollTo, highlight, duration, newIndex });
+	navigator.scrollToPostIndex = function (postIndex, highlight, duration) {
+		const scrollTo = components.get('post', 'index', postIndex);
+		navigator.scrollToElement(scrollTo, highlight, duration, postIndex);
+	};
 
-        const postHeight = scrollTo.outerHeight(true);
-        const navbarHeight = components.get('navbar').outerHeight(true) || 0;
-        const topicHeaderHeight = $('.topic-header').outerHeight(true) || 0;
-        const viewportHeight = $(window).height();
+	navigator.scrollToTopicIndex = function (topicIndex, highlight, duration) {
+		const scrollTo = $('[component="category/topic"][data-index="' + topicIndex + '"]');
+		navigator.scrollToElement(scrollTo, highlight, duration, topicIndex);
+	};
 
-        // Temporarily disable navigator update on scroll
-        $(window).off('scroll', navigator.delayedUpdate);
+	navigator.scrollToElement = async (scrollTo, highlight, duration, newIndex = null) => {
+		if (scrollTo.length === 0) {
+			navigator.scrollActive = false;
+			return;
+		}
 
-        duration = duration !== undefined ? duration : 400;
-        navigator.scrollActive = true;
-        let done = false;
+		await hooks.fire('filter:navigator.scroll', {
+			scrollTo, highlight, duration, newIndex,
+		});
 
-        function animateScroll() {
-            function reenableScroll() {
-                // Re-enable onScroll behaviour
-                setTimeout(() => { // fixes race condition from jQuery — onAnimateComplete called too quickly
-                    $(window).on('scroll', navigator.delayedUpdate);
+		const postHeight = scrollTo.outerHeight(true);
+		const navbarHeight = components.get('navbar').outerHeight(true) || 0;
+		const topicHeaderHeight = $('.topic-header').outerHeight(true) || 0;
+		const viewportHeight = $(window).height();
 
-                    hooks.fire('action:navigator.scrolled', { scrollTo, highlight, duration, newIndex });
-                }, 50);
-            }
-            function onAnimateComplete() {
-                if (done) {
-                    reenableScroll();
-                    return;
-                }
-                done = true;
+		// Temporarily disable navigator update on scroll
+		$(window).off('scroll', navigator.delayedUpdate);
 
-                navigator.scrollActive = false;
-                highlightPost();
+		duration = duration === undefined ? 400 : duration;
+		navigator.scrollActive = true;
+		let done = false;
 
-                const scrollToRect = scrollTo.get(0).getBoundingClientRect();
-                if (!newIndex) {
-                    navigator.update(scrollToRect.top);
-                } else {
-                    navigator.setIndex(newIndex);
-                }
-            }
+		function animateScroll() {
+			function reenableScroll() {
+				// Re-enable onScroll behaviour
+				setTimeout(() => { // Fixes race condition from jQuery — onAnimateComplete called too quickly
+					$(window).on('scroll', navigator.delayedUpdate);
 
-            let scrollTop = 0;
-            if (postHeight < viewportHeight - navbarHeight - topicHeaderHeight) {
-                scrollTop = scrollTo.offset().top - (viewportHeight / 2) + (postHeight / 2);
-            } else {
-                scrollTop = scrollTo.offset().top - navbarHeight - topicHeaderHeight;
-            }
+					hooks.fire('action:navigator.scrolled', {
+						scrollTo, highlight, duration, newIndex,
+					});
+				}, 50);
+			}
 
-            if (duration === 0) {
-                $(window).scrollTop(scrollTop);
-                onAnimateComplete();
-                reenableScroll();
-                return;
-            }
-            $('html, body').animate({
-                scrollTop: scrollTop + 'px',
-            }, duration, onAnimateComplete);
-        }
+			function onAnimateComplete() {
+				if (done) {
+					reenableScroll();
+					return;
+				}
 
-        function highlightPost() {
-            if (highlight) {
-                $('[component="post"],[component="category/topic"]').removeClass('highlight');
-                scrollTo.addClass('highlight');
-                setTimeout(function () {
-                    scrollTo.removeClass('highlight');
-                }, 10000);
-            }
-        }
+				done = true;
 
-        animateScroll();
-    };
+				navigator.scrollActive = false;
+				highlightPost();
 
-    return navigator;
+				const scrollToRect = scrollTo.get(0).getBoundingClientRect();
+				if (newIndex) {
+					navigator.setIndex(newIndex);
+				} else {
+					navigator.update(scrollToRect.top);
+				}
+			}
+
+			let scrollTop = 0;
+			scrollTop = postHeight < viewportHeight - navbarHeight - topicHeaderHeight ? scrollTo.offset().top - (viewportHeight / 2) + (postHeight / 2) : scrollTo.offset().top - navbarHeight - topicHeaderHeight;
+
+			if (duration === 0) {
+				$(window).scrollTop(scrollTop);
+				onAnimateComplete();
+				reenableScroll();
+				return;
+			}
+
+			$('html, body').animate({
+				scrollTop: scrollTop + 'px',
+			}, duration, onAnimateComplete);
+		}
+
+		function highlightPost() {
+			if (highlight) {
+				$('[component="post"],[component="category/topic"]').removeClass('highlight');
+				scrollTo.addClass('highlight');
+				setTimeout(() => {
+					scrollTo.removeClass('highlight');
+				}, 10_000);
+			}
+		}
+
+		animateScroll();
+	};
+
+	return navigator;
 });
 

@@ -1,6 +1,6 @@
 'use strict';
 
-const path = require('path');
+const path = require('node:path');
 
 const baseDir = path.join(__dirname, '../');
 const loader = path.join(baseDir, 'loader.js');
@@ -13,15 +13,15 @@ const nodeModules = path.join(baseDir, 'node_modules');
 const themes = path.join(baseDir, 'themes');
 
 exports.paths = {
-    baseDir,
-    loader,
-    app,
-    pidfile,
-    config,
-    currentPackage,
-    installPackage,
-    nodeModules,
-    themes,
+	baseDir,
+	loader,
+	app,
+	pidfile,
+	config,
+	currentPackage,
+	installPackage,
+	nodeModules,
+	themes,
 };
 
 exports.pluginNamePattern = /^(@[\w-]+\/)?nodebb-(theme|plugin|widget|rewards)-[\w-]+$/;

@@ -1,9 +1,8 @@
 'use strict';
 
+const os = require('node:os');
 const winston = require('winston');
-const os = require('os');
 const nconf = require('nconf');
-
 const pubsub = require('../pubsub');
 const slugify = require('../slugify');
 
@@ -24,50 +23,50 @@ Meta.templates = require('./templates');
 Meta.blacklist = require('./blacklist');
 Meta.languages = require('./languages');
 
-
 /* Assorted */
 Meta.userOrGroupExists = async function (slug) {
-    if (!slug) {
-        throw new Error('[[error:invalid-data]]');
-    }
-    const user = require('../user');
-    const groups = require('../groups');
-    slug = slugify(slug);
-    const [userExists, groupExists] = await Promise.all([
-        user.existsBySlug(slug),
-        groups.existsBySlug(slug),
-    ]);
-    return userExists || groupExists;
+	if (!slug) {
+		throw new Error('[[error:invalid-data]]');
+	}
+
+	const user = require('../user');
+	const groups = require('../groups');
+	slug = slugify(slug);
+	const [userExists, groupExists] = await Promise.all([
+		user.existsBySlug(slug),
+		groups.existsBySlug(slug),
+	]);
+	return userExists || groupExists;
 };
 
 if (nconf.get('isPrimary')) {
-    pubsub.on('meta:restart', (data) => {
-        if (data.hostname !== os.hostname()) {
-            restart();
-        }
-    });
+	pubsub.on('meta:restart', data => {
+		if (data.hostname !== os.hostname()) {
+			restart();
+		}
+	});
 }
 
 Meta.restart = function () {
-    pubsub.publish('meta:restart', { hostname: os.hostname() });
-    restart();
+	pubsub.publish('meta:restart', {hostname: os.hostname()});
+	restart();
 };
 
 function restart() {
-    if (process.send) {
-        process.send({
-            action: 'restart',
-        });
-    } else {
-        winston.error('[meta.restart] Could not restart, are you sure NodeBB was started with `./nodebb start`?');
-    }
+	if (process.send) {
+		process.send({
+			action: 'restart',
+		});
+	} else {
+		winston.error('[meta.restart] Could not restart, are you sure NodeBB was started with `./nodebb start`?');
+	}
 }
 
 Meta.getSessionTTLSeconds = function () {
-    const ttlDays = 60 * 60 * 24 * Meta.config.loginDays;
-    const ttlSeconds = Meta.config.loginSeconds;
-    const ttl = ttlSeconds || ttlDays || 1209600; // Default to 14 days
-    return ttl;
+	const ttlDays = 60 * 60 * 24 * Meta.config.loginDays;
+	const ttlSeconds = Meta.config.loginSeconds;
+	const ttl = ttlSeconds || ttlDays || 1_209_600; // Default to 14 days
+	return ttl;
 };
 
 require('../promisify')(Meta);

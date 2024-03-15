@@ -10,40 +10,40 @@ const privileges = require('../privileges');
 const utils = require('../utils');
 
 module.exports = function (middleware) {
-    middleware.exposeAdmin = async (req, res, next) => {
-        // Unlike `requireAdmin`, this middleware just checks the uid, and sets `isAdmin` in `res.locals`
-        res.locals.isAdmin = false;
+	middleware.exposeAdmin = async (request, res, next) => {
+		// Unlike `requireAdmin`, this middleware just checks the uid, and sets `isAdmin` in `res.locals`
+		res.locals.isAdmin = false;
 
-        if (!req.user) {
-            return next();
-        }
+		if (!request.user) {
+			return next();
+		}
 
-        res.locals.isAdmin = await user.isAdministrator(req.user.uid);
-        next();
-    };
+		res.locals.isAdmin = await user.isAdministrator(request.user.uid);
+		next();
+	};
 
-    middleware.exposePrivileges = async (req, res, next) => {
-        // Exposes a hash of user's ranks (admin, gmod, etc.)
-        const hash = await utils.promiseParallel({
-            isAdmin: user.isAdministrator(req.user.uid),
-            isGmod: user.isGlobalModerator(req.user.uid),
-            isPrivileged: user.isPrivileged(req.user.uid),
-        });
+	middleware.exposePrivileges = async (request, res, next) => {
+		// Exposes a hash of user's ranks (admin, gmod, etc.)
+		const hash = await utils.promiseParallel({
+			isAdmin: user.isAdministrator(request.user.uid),
+			isGmod: user.isGlobalModerator(request.user.uid),
+			isPrivileged: user.isPrivileged(request.user.uid),
+		});
 
-        if (req.params.uid) {
-            hash.isSelf = parseInt(req.params.uid, 10) === req.user.uid;
-        }
+		if (request.params.uid) {
+			hash.isSelf = Number.parseInt(request.params.uid, 10) === request.user.uid;
+		}
 
-        res.locals.privileges = hash;
-        next();
-    };
+		res.locals.privileges = hash;
+		next();
+	};
 
-    middleware.exposePrivilegeSet = async (req, res, next) => {
-        // Exposes a user's global/admin privilege set
-        res.locals.privileges = {
-            ...await privileges.global.get(req.user.uid),
-            ...await privileges.admin.get(req.user.uid),
-        };
-        next();
-    };
+	middleware.exposePrivilegeSet = async (request, res, next) => {
+		// Exposes a user's global/admin privilege set
+		res.locals.privileges = {
+			...await privileges.global.get(request.user.uid),
+			...await privileges.admin.get(request.user.uid),
+		};
+		next();
+	};
 };

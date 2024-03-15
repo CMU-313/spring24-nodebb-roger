@@ -1,32 +1,32 @@
 'use strict';
 
+define('forum/reset', ['alerts'], alerts => {
+	const ResetPassword = {};
 
-define('forum/reset', ['alerts'], function (alerts) {
-    const ResetPassword = {};
+	ResetPassword.init = function () {
+		const inputElement = $('#email');
+		const errorElement = $('#error');
+		const successElement = $('#success');
 
-    ResetPassword.init = function () {
-        const inputEl = $('#email');
-        const errorEl = $('#error');
-        const successEl = $('#success');
+		$('#reset').on('click', () => {
+			if (inputElement.val() && inputElement.val().includes('@')) {
+				socket.emit('user.reset.send', inputElement.val(), error => {
+					if (error) {
+						return alerts.error(error);
+					}
 
-        $('#reset').on('click', function () {
-            if (inputEl.val() && inputEl.val().indexOf('@') !== -1) {
-                socket.emit('user.reset.send', inputEl.val(), function (err) {
-                    if (err) {
-                        return alerts.error(err);
-                    }
+					errorElement.addClass('hide');
+					successElement.removeClass('hide');
+					inputElement.val('');
+				});
+			} else {
+				successElement.addClass('hide');
+				errorElement.removeClass('hide');
+			}
 
-                    errorEl.addClass('hide');
-                    successEl.removeClass('hide');
-                    inputEl.val('');
-                });
-            } else {
-                successEl.addClass('hide');
-                errorEl.removeClass('hide');
-            }
-            return false;
-        });
-    };
+			return false;
+		});
+	};
 
-    return ResetPassword;
+	return ResetPassword;
 });

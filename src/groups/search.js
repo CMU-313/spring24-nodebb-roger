@@ -4,81 +4,87 @@ const user = require('../user');
 const db = require('../database');
 
 module.exports = function (Groups) {
-    Groups.search = async function (query, options) {
-        if (!query) {
-            return [];
-        }
-        query = String(query).toLowerCase();
-        let groupNames = await db.getSortedSetRange('groups:createtime', 0, -1);
-        if (!options.hideEphemeralGroups) {
-            groupNames = Groups.ephemeralGroups.concat(groupNames);
-        }
-        groupNames = groupNames.filter(name => name.toLowerCase().includes(query) &&
-            name !== Groups.BANNED_USERS && // hide banned-users in searches
-            !Groups.isPrivilegeGroup(name));
-        groupNames = groupNames.slice(0, 100);
+	Groups.search = async function (query, options) {
+		if (!query) {
+			return [];
+		}
 
-        let groupsData;
-        if (options.showMembers) {
-            groupsData = await Groups.getGroupsAndMembers(groupNames);
-        } else {
-            groupsData = await Groups.getGroupsData(groupNames);
-        }
-        groupsData = groupsData.filter(Boolean);
-        if (options.filterHidden) {
-            groupsData = groupsData.filter(group => !group.hidden);
-        }
-        return Groups.sort(options.sort, groupsData);
-    };
+		query = String(query).toLowerCase();
+		let groupNames = await db.getSortedSetRange('groups:createtime', 0, -1);
+		if (!options.hideEphemeralGroups) {
+			groupNames = Groups.ephemeralGroups.concat(groupNames);
+		}
 
-    Groups.sort = function (strategy, groups) {
-        switch (strategy) {
-        case 'count':
-            groups.sort((a, b) => a.slug > b.slug)
-                .sort((a, b) => b.memberCount - a.memberCount);
-            break;
+		groupNames = groupNames.filter(name => name.toLowerCase().includes(query)
+            && name !== Groups.BANNED_USERS // Hide banned-users in searches
+            && !Groups.isPrivilegeGroup(name));
+		groupNames = groupNames.slice(0, 100);
 
-        case 'date':
-            groups.sort((a, b) => b.createtime - a.createtime);
-            break;
+		let groupsData;
+		groupsData = await (options.showMembers ? Groups.getGroupsAndMembers(groupNames) : Groups.getGroupsData(groupNames));
 
-        case 'alpha': // intentional fall-through
-        default:
-            groups.sort((a, b) => (a.slug > b.slug ? 1 : -1));
-        }
+		groupsData = groupsData.filter(Boolean);
+		if (options.filterHidden) {
+			groupsData = groupsData.filter(group => !group.hidden);
+		}
 
-        return groups;
-    };
+		return Groups.sort(options.sort, groupsData);
+	};
 
-    Groups.searchMembers = async function (data) {
-        if (!data.query) {
-            const users = await Groups.getOwnersAndMembers(data.groupName, data.uid, 0, 19);
-            return { users: users };
-        }
+	Groups.sort = function (strategy, groups) {
+		switch (strategy) {
+			case 'count': {
+				groups.sort((a, b) => a.slug > b.slug)
+					.sort((a, b) => b.memberCount - a.memberCount);
+				break;
+			}
 
-        const results = await user.search({
-            ...data,
-            paginate: false,
-            hardCap: -1,
-        });
+			case 'date': {
+				groups.sort((a, b) => b.createtime - a.createtime);
+				break;
+			}
 
-        const uids = results.users.map(user => user && user.uid);
-        const isOwners = await Groups.ownership.isOwners(uids, data.groupName);
+			case 'alpha': // Intentional fall-through
+			default: {
+				groups.sort((a, b) => (a.slug > b.slug ? 1 : -1));
+			}
+		}
 
-        results.users.forEach((user, index) => {
-            if (user) {
-                user.isOwner = isOwners[index];
-            }
-        });
+		return groups;
+	};
 
-        results.users.sort((a, b) => {
-            if (a.isOwner && !b.isOwner) {
-                return -1;
-            } else if (!a.isOwner && b.isOwner) {
-                return 1;
-            }
-            return 0;
-        });
-        return results;
-    };
+	Groups.searchMembers = async function (data) {
+		if (!data.query) {
+			const users = await Groups.getOwnersAndMembers(data.groupName, data.uid, 0, 19);
+			return {users};
+		}
+
+		const results = await user.search({
+			...data,
+			paginate: false,
+			hardCap: -1,
+		});
+
+		const uids = results.users.map(user => user && user.uid);
+		const isOwners = await Groups.ownership.isOwners(uids, data.groupName);
+
+		for (const [index, user] of results.users.entries()) {
+			if (user) {
+				user.isOwner = isOwners[index];
+			}
+		}
+
+		results.users.sort((a, b) => {
+			if (a.isOwner && !b.isOwner) {
+				return -1;
+			}
+
+			if (!a.isOwner && b.isOwner) {
+				return 1;
+			}
+
+			return 0;
+		});
+		return results;
+	};
 };

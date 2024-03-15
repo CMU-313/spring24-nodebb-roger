@@ -40,11 +40,11 @@ function getPostSharing() {
         ];
         networks = (yield plugins_1.default.hooks.fire('filter:social.posts', networks));
         // The next line calls a function in a module that has not been updated to TS yet
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         const activated = yield database_1.default.getSetMembers('social:posts.activated');
-        networks.forEach((network) => {
+        for (const network of networks) {
             network.activated = activated.includes(network.id);
-        });
+        }
         postSharing = networks;
         return lodash_1.default.cloneDeep(networks);
     });
@@ -61,13 +61,13 @@ function setActivePostSharingNetworks(networkIDs) {
     return __awaiter(this, void 0, void 0, function* () {
         postSharing = null;
         // The next line calls a function in a module that has not been updated to TS yet
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         yield database_1.default.delete('social:posts.activated');
-        if (!networkIDs.length) {
+        if (networkIDs.length === 0) {
             return;
         }
         // The next line calls a function in a module that has not been updated to TS yet
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         yield database_1.default.setAdd('social:posts.activated', networkIDs);
     });
 }

@@ -2,65 +2,67 @@
 'use strict';
 
 module.exports = function (module) {
-    const helpers = require('../helpers');
-    module.sortedSetIntersectCard = async function (keys) {
-        if (!Array.isArray(keys) || !keys.length) {
-            return 0;
-        }
-        const tempSetName = `temp_${Date.now()}`;
+	const helpers = require('../helpers');
+	module.sortedSetIntersectCard = async function (keys) {
+		if (!Array.isArray(keys) || keys.length === 0) {
+			return 0;
+		}
 
-        const interParams = [tempSetName, keys.length].concat(keys);
+		const temporarySetName = `temp_${Date.now()}`;
 
-        const multi = module.client.multi();
-        multi.zinterstore(interParams);
-        multi.zcard(tempSetName);
-        multi.del(tempSetName);
-        const results = await helpers.execBatch(multi);
-        return results[1] || 0;
-    };
+		const interParameters = [temporarySetName, keys.length].concat(keys);
 
-    module.getSortedSetIntersect = async function (params) {
-        params.method = 'zrange';
-        return await getSortedSetRevIntersect(params);
-    };
+		const multi = module.client.multi();
+		multi.zinterstore(interParameters);
+		multi.zcard(temporarySetName);
+		multi.del(temporarySetName);
+		const results = await helpers.execBatch(multi);
+		return results[1] || 0;
+	};
 
-    module.getSortedSetRevIntersect = async function (params) {
-        params.method = 'zrevrange';
-        return await getSortedSetRevIntersect(params);
-    };
+	module.getSortedSetIntersect = async function (parameters) {
+		parameters.method = 'zrange';
+		return await getSortedSetRevIntersect(parameters);
+	};
 
-    async function getSortedSetRevIntersect(params) {
-        const { sets } = params;
-        const start = params.hasOwnProperty('start') ? params.start : 0;
-        const stop = params.hasOwnProperty('stop') ? params.stop : -1;
-        const weights = params.weights || [];
+	module.getSortedSetRevIntersect = async function (parameters) {
+		parameters.method = 'zrevrange';
+		return await getSortedSetRevIntersect(parameters);
+	};
 
-        const tempSetName = `temp_${Date.now()}`;
+	async function getSortedSetRevIntersect(parameters) {
+		const {sets} = parameters;
+		const start = parameters.hasOwnProperty('start') ? parameters.start : 0;
+		const stop = parameters.hasOwnProperty('stop') ? parameters.stop : -1;
+		const weights = parameters.weights || [];
 
-        let interParams = [tempSetName, sets.length].concat(sets);
-        if (weights.length) {
-            interParams = interParams.concat(['WEIGHTS'].concat(weights));
-        }
+		const temporarySetName = `temp_${Date.now()}`;
 
-        if (params.aggregate) {
-            interParams = interParams.concat(['AGGREGATE', params.aggregate]);
-        }
+		let interParameters = [temporarySetName, sets.length].concat(sets);
+		if (weights.length > 0) {
+			interParameters = interParameters.concat(['WEIGHTS'].concat(weights));
+		}
 
-        const rangeParams = [tempSetName, start, stop];
-        if (params.withScores) {
-            rangeParams.push('WITHSCORES');
-        }
+		if (parameters.aggregate) {
+			interParameters = interParameters.concat(['AGGREGATE', parameters.aggregate]);
+		}
 
-        const multi = module.client.multi();
-        multi.zinterstore(interParams);
-        multi[params.method](rangeParams);
-        multi.del(tempSetName);
-        let results = await helpers.execBatch(multi);
+		const rangeParameters = [temporarySetName, start, stop];
+		if (parameters.withScores) {
+			rangeParameters.push('WITHSCORES');
+		}
 
-        if (!params.withScores) {
-            return results ? results[1] : null;
-        }
-        results = results[1] || [];
-        return helpers.zsetToObjectArray(results);
-    }
+		const multi = module.client.multi();
+		multi.zinterstore(interParameters);
+		multi[parameters.method](rangeParameters);
+		multi.del(temporarySetName);
+		let results = await helpers.execBatch(multi);
+
+		if (!parameters.withScores) {
+			return results ? results[1] : null;
+		}
+
+		results = results[1] || [];
+		return helpers.zsetToObjectArray(results);
+	}
 };
