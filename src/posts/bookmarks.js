@@ -4,7 +4,6 @@ const Iroh = require('iroh');
 
 const db = require('../database');
 const plugins = require('../plugins');
-const { Strategy } = require('passport-http-bearer');
 
 module.exports = function (Posts) {
     Posts.bookmark = async function (pid, uid) {
@@ -20,20 +19,20 @@ module.exports = function (Posts) {
             throw new Error('[[error:not-logged-in]]');
         }
 
-        console.log('using Iroh to log the value of isBookmarking variale')
-        const Stage = new Iroh.Stage(`const isBookmarking = type === 'bookmark';`)
+        console.log('using Iroh to log the value of isBookmarking variale');
+        const Stage = new Iroh.Stage(`const isBookmarking = type === 'bookmark';`);
         const listener = Stage.addListener(Iroh.VAR);
         listener.on('before', (context) => {
-            console.log('value of isBookmarking before:', context.value); 
+            console.log('value of isBookmarking before:', context.value);
         });
 
         listener.on('after', (context) => {
-            console.log('value after:', context.value); 
+            console.log('value after:', context.value);
         });
 
         // eslint-disable-next-line no-eval
         eval(Stage.script);
-        console.log('finished using Iroh!')
+        console.log('finished using Iroh!');
 
         const isBookmarking = type === 'bookmark';
 
