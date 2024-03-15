@@ -83,4 +83,4 @@ jobs:
         run: npm run lint
 
       - name: Run Retire
-        run: retire
+        run: npx retire
