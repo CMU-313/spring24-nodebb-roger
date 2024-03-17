@@ -54,7 +54,15 @@
 <br />
 
 <div class="content" component="post/content" itemprop="text">
-    {posts.content}
+        {posts.content}
+        {{{if !posts.isEnglish }}}
+        <div class="sensitive-content-message">
+        <a class="btn btn-sm btn-primary view-original-btn">Click here to view the translated message.</a>
+        </div>
+        <div class="original-content" style="display:none;">
+        {posts.translatedContent}
+        </div>
+        {{{end}}}
 </div>
 
 <div class="post-footer">

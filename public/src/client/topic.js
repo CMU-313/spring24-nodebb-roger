@@ -66,11 +66,33 @@ define('forum/topic', [
         handleBookmark(tid);
 
         $(window).on('scroll', utils.debounce(updateTopicTitle, 250));
+        configurePostToggle();
 
         handleTopicSearch();
-
         hooks.fire('action:topic.loaded', ajaxify.data);
     };
+
+    function configurePostToggle() {
+        $(".topic").on("click", ".view-original-btn", function () {
+            console.log("clicked");
+            console.log(this);
+            // Toggle the visibility of the next .original-content div
+            $(this).closest('.sensitive-content-message').next('.original-content').toggle();
+
+            console.log($(this).closest('.sensitive-content-message').next('.original-content'));
+            // Optionally, change the button text based on visibility
+            var isVisible = $(this).closest('.sensitive-content-message').next('.original-content').is(':visible');
+            if (isVisible) {
+                $(this).text('Hide the translated message.');
+            } else {
+                $(this).text('Click here to view the translated message.');
+            }
+        });
+    }
+
+
+
+
 
     function handleTopicSearch() {
         require(['mousetrap'], (mousetrap) => {
