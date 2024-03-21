@@ -84,7 +84,9 @@ module.exports = function (module) {
 
         let result = [];
         async function doQuery(_key, fields, skip, limit) {
+            /* eslint-disable */
             return await module.client.collection('objects').find({ ...query, ...{ _key: _key } }, { projection: fields })
+            /* eslint-disable */
                 .sort({ score: sort })
                 .skip(skip)
                 .limit(limit)

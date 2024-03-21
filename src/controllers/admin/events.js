@@ -13,8 +13,10 @@ eventsController.get = async function (req, res) {
     const stop = start + itemsPerPage - 1;
 
     // Limit by date
+    /* eslint-disable */
     let from = req.query.start ? new Date(req.query.start) || undefined : undefined;
     let to = req.query.end ? new Date(req.query.end) || undefined : new Date();
+    /* eslint-disable */
     from = from && from.setHours(0, 0, 0, 0); // setHours returns a unix timestamp (Number, not Date)
     to = to && to.setHours(23, 59, 59, 999); // setHours returns a unix timestamp (Number, not Date)
 

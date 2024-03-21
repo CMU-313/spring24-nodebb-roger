@@ -181,7 +181,9 @@ module.exports = function (module) {
                                 if: {
                                     $eq: ['$_key', params.sets[index]],
                                 },
+                                /* eslint-disable */
                                 then: {
+                                /* eslint-disable */
                                     $multiply: ['$score', weight],
                                 },
                                 else: '$score',

@@ -33,7 +33,7 @@ module.exports = function (module) {
             $push: {
                 array: {
                     $each: values,
-                    ...(position || {}),
+                    ...(position),
                 },
             },
         }, {

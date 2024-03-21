@@ -22,7 +22,7 @@ helpers.resultsToBool = function (results) {
 };
 
 helpers.zsetToObjectArray = function (data) {
-    const objects = new Array(data.length / 2);
+    const objects = Array.from({ length: data.length / 2 });
     for (let i = 0, k = 0; i < objects.length; i += 1, k += 2) {
         objects[i] = { value: data[k], score: parseFloat(data[k + 1]) };
     }

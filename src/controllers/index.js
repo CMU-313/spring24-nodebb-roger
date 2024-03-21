@@ -220,7 +220,7 @@ Controllers.registerInterstitial = async function (req, res, next) {
 
         const errors = req.flash('errors');
         const renders = data.interstitials.map(
-            interstitial => req.app.renderAsync(interstitial.template, { ...interstitial.data || {}, errors })
+            interstitial => req.app.renderAsync(interstitial.template, { ...interstitial.data, errors })
         );
         const sections = await Promise.all(renders);
 

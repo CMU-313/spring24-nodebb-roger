@@ -86,7 +86,7 @@ Data.getActive = async function () {
 
 
 Data.getStaticDirectories = async function (pluginData) {
-    const validMappedPath = /^[\w\-_]+$/;
+    const validMappedPath = /^[\w-_]+$/;
 
     if (!pluginData.staticDirs) {
         return;
