@@ -15,6 +15,9 @@ defaults:
 permissions:
   contents: read
 
+env:
+  TRANSLATOR_API: ${{ secrets.TRANSLATOR_ENDPOINT }}
+
 jobs:
   test:
     permissions:
