@@ -153,6 +153,7 @@ jobs:
       - name: Setup on Redis
         if: startsWith(matrix.database, 'redis')
         env:
+          TRANSLATOR_API: ${{ secrets.TRANSLATOR_ENDPOINT }}
           SETUP: >-
             {
               "url": "http://127.0.0.1:4567/forum",
