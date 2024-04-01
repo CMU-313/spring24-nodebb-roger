@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 env:
-  TRANSLATOR_API: "https://roger-6phyiw4kza-uc.a.run.app/"
+  TRANSLATOR_API: ${{ vars.TRANSLATOR_ENDPOINT  }}
 
 jobs:
   test:
@@ -153,7 +153,6 @@ jobs:
       - name: Setup on Redis
         if: startsWith(matrix.database, 'redis')
         env:
-          TRANSLATOR_API: "https://roger-6phyiw4kza-uc.a.run.app/"
           SETUP: >-
             {
               "url": "http://127.0.0.1:4567/forum",
@@ -176,8 +175,7 @@ jobs:
               "port": 6379
             }
         run: |
-          echo "API endpoint is $TRANSLATOR_API"
-          echo "Take 2: endpoijnt is $TRANSLATOR_API"
+          echo "ENDPOINT: $TRANSLATOR_API"
           node app --setup="${SETUP}" --ci="${CI}"
 
       - name: Node tests
