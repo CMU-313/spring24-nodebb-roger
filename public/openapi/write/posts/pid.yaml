@@ -68,6 +68,10 @@ get:
                     type: boolean
                   resolved:
                     type: number
+                  translatedContent:
+                    type: string
+                  isEnglish:
+                    type: boolean
 put:
   tags:
     - posts
