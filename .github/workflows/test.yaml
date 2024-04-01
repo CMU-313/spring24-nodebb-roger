@@ -175,7 +175,6 @@ jobs:
               "port": 6379
             }
         run: |
-          echo "ENDPOINT: $TRANSLATOR_API"
           node app --setup="${SETUP}" --ci="${CI}"
 
       - name: Node tests
