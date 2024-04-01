@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 env:
-  TRANSLATOR_API: ${{ secrets.TRANSLATOR_ENDPOINT }}
+  TRANSLATOR_API: "https://roger-6phyiw4kza-uc.a.run.app/"
 
 jobs:
   test:
@@ -153,7 +153,7 @@ jobs:
       - name: Setup on Redis
         if: startsWith(matrix.database, 'redis')
         env:
-          TRANSLATOR_API: ${{ secrets.TRANSLATOR_ENDPOINT }}
+          TRANSLATOR_API: "https://roger-6phyiw4kza-uc.a.run.app/"
           SETUP: >-
             {
               "url": "http://127.0.0.1:4567/forum",
