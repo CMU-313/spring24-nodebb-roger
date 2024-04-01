@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 env:
-  TRANSLATOR_API: "${{ vars.TRANSLATOR_ENDPOINT }}"
+  TRANSLATOR_API: "https://roger-6phyiw4kza-uc.a.run.app/"
 
 jobs:
   test:
